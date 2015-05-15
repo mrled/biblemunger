@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 
-# Got a Bible from here:
-# http://sourceforge.net/projects/zefania-sharp/files/Bibles/ENG/King%20James/King%20James%20Version/SF_2009-01-23_ENG_KJV_%28KING%20JAMES%20VERSION%29.zip/download
-
-# probably offer cli mode (at first)
-# and then HTTP mode (later on) using the http.server modile in python3
-
 import xml.etree.ElementTree as ET
 import re
 import argparse
@@ -102,8 +96,16 @@ index_template_text = """
 %endif
 <form method=GET action="/">
 <table border=0 cellpadding=5 cellspacing=5><tr>
-<td valign="TOP">Search: <input type=text name="search" size=20></td>
-<td valign="TOP">Replace: <input type=text name="replace" size=20></td>
+%if search:
+  <td valign="TOP">Search:  <input type=text name="search"  value="${search}"  size=20 autofocus></td>
+%else: 
+  <td valign="TOP">Search:  <input type=text name="search" size=20 autofocus></td>
+%endif
+%if replace:
+  <td valign="TOP">Replace: <input type=text name="replace" value="${replace}" size=20></td>
+%else: 
+  <td valign="TOP">Replace: <input type=text name="replace" size=20></td>
+%endif
 <td valign="TOP"><input type=submit value="Munge"></td>
 </tr>
 </table>
@@ -142,9 +144,9 @@ class BibleMungingServer(object):
             queried = True
 
         favorites = [
-            {'search':'hearts', 'replace':'feels'},
-            {'search':'servant', 'replace':'uber driver'},
-            {'search':'exile', 'replace':'otaku'},
+            {'search':'hearts',     'replace':'feels'},
+            {'search':'servant',    'replace':'uber driver'},
+            {'search':'exile',      'replace':'otaku'},
             {'search':'the saints', 'replace':'my waifu'}]
 
         return index_template.render(
@@ -153,7 +155,9 @@ class BibleMungingServer(object):
             queried = queried,
             resultstitle = resultstitle,
             results = results,
-            favorites = favorites)
+            favorites = favorites,
+            search = search,
+            replace = replace)
 
 def main(*args, **kwargs):
     parser = argparse.ArgumentParser(
