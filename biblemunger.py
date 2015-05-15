@@ -150,7 +150,10 @@ def main(*args, **kwargs):
 
     parsed = parser.parse_args()
     if parsed.web:
-        #cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
+        cherrypy.config.update({
+            'server.socket_port': 8187,
+            'server.socket_host': '0.0.0.0'})
+
         cherrypy.quickstart(BibleMungingServer())
     if parsed.search:
         for verse in bible.search(parsed.search):
