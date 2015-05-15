@@ -10,8 +10,13 @@ import cherrypy
 from mako.template import Template
 
 class BibleVerse(object):
+
     def __init__(self, text, verse, chapter, book):
-        self.text = text
+        if type(text) is tuple:
+            self.text = text[0]
+            self.text_markedup = text[1]
+        else:
+            self.text = text
         self.verse = verse
         self.chapter = chapter
         self.book = book
@@ -21,7 +26,7 @@ class BibleVerse(object):
         return string
     def htmltr(self):
         html = "<tr><td><strong>{} {}:{}</strong></td><td>{}</td>".format(
-            self.book, self.chapter, self.verse, self.text)
+            self.book, self.chapter, self.verse, self.text_markedup)
         return html
 
 class Bible(object):
@@ -66,13 +71,41 @@ class Bible(object):
     def replace(self, old, new):
         munged = []
         for verse in self.search(old):
+            plaintext = re.sub(old, new, verse.text, flags=re.IGNORECASE)
+            markedtext = re.sub(
+                new, '<a class="munged">{}</a>'.format(new), plaintext,
+                flags=re.IGNORECASE)
             munged += [BibleVerse(
-                re.sub(old, new, verse.text, flags=re.IGNORECASE),
+                (plaintext, markedtext),
+                #re.sub(old, new, verse.text, flags=re.IGNORECASE),
                 verse.verse, verse.chapter, verse.book)]
         return munged
 
+#      /* mungeds[i].className += " embolden"; */
+#      /* mungeds[i].className.replace(/\bembolden\b/,''); */
 index_template_text = """
-<html><head><title>${pagetitle}</title></head>
+<html>
+<head>
+<title>${pagetitle}</title>
+<style>
+a.embolden { font-weight:bold; };
+</style>
+<script>
+function emboldenMunged() {
+  var mungeds = document.getElementsByClassName("munged");
+  unembolden_re = new RegExp(" ?embolden", "g");
+  for (var i=0, il = mungeds.length; i<il; ++i) {
+    if (document.getElementById("emboldenbox").checked) {
+      mungeds[i].className += " embolden";
+    }
+    else {
+      mungeds[i].className = mungeds[i].className.replace(unembolden_re,"");
+   }
+  }
+}
+window.onload = emboldenMunged;
+</script>
+</head>
 <body><center>
 <h2><a href="/">${apptitle}</a></h2>
 <p>Find some text in the Bible and replace it with other text.</p>
@@ -88,9 +121,9 @@ index_template_text = """
 <form method=GET action="/">
 <table border=0 cellpadding=5 cellspacing=5><tr>
 %if search:
-  <td valign="TOP">Search:  <input type=text name="search"  value="${search}"  size=20 autofocus></td>
+  <td valign="TOP">Search:  <input type=text name="search"  value="${search}"  size=20 autofocus="true"></td>
 %else: 
-  <td valign="TOP">Search:  <input type=text name="search" size=20 autofocus></td>
+  <td valign="TOP">Search:  <input type=text name="search" size=20 autofocus="true"></td>
 %endif
 %if replace:
   <td valign="TOP">Replace: <input type=text name="replace" value="${replace}" size=20></td>
@@ -103,14 +136,18 @@ index_template_text = """
 </form>
 %if queried:
   <h2>${resultstitle}</h2>
-  %if results:
-    <table border=0 cellspacing=5 cellpadding=5 width="540" align="CENTER">
-    %for verse in results:
-      ${verse.htmltr()}
-    %endfor
-    </table>
-  %else:
-    <p>None</p>
+  <p>Embolden replacement text 
+    <input name="embolden" id="emboldenbox" type="checkbox" checked="checked" onclick="emboldenMunged()"></p>
+  <div id="results">
+    %if results:
+      <table border=0 cellspacing=5 cellpadding=5 width="540" align="CENTER">
+      %for verse in results:
+        ${verse.htmltr()}
+      %endfor
+      </table>
+    %else:
+      <p>None</p>
+  </div>
   %endif
 %endif     
 </center></body></html>
@@ -172,7 +209,7 @@ def main(*args, **kwargs):
     parsed = parser.parse_args()
     if parsed.web:
         cherrypy.config.update({
-            'server.socket_port': 8187,
+            'server.socket_port': 8187,       #BIBL
             'server.socket_host': '0.0.0.0'})
 
         cherrypy.quickstart(BibleMungingServer())
