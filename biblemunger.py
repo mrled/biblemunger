@@ -59,20 +59,11 @@ class Bible(object):
     def search(self, string):
         found = []
         for verse in self.verses:
-            #if verse.text.find(string):
-            #    found += verse
             if re.search(string, verse.text):
                 found += [verse]
         return found
 
     def replace(self, old, new):
-        '''
-        some of my favorites:
-        - hearts, feels
-        - servant, uber driver
-        - the saints, my waifu
-        - exile, otaku
-        '''
         munged = []
         for verse in self.search(old):
             munged += [BibleVerse(
