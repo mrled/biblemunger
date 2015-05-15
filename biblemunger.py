@@ -109,15 +109,14 @@ index_template_text = """
 </table>
 </form>
 %if queried:
+  <h2>${resultstitle}</h2>
   %if results:
-    <h2>${resultstitle}</h2>
     <table border=0 cellspacing=5 cellpadding=5 width="540" align="CENTER">
     %for verse in results:
       ${verse.htmltr()}
     %endfor
     </table>
   %else:
-    <h2>${title}</h2>
     <p>None</p>
   %endif
 %endif     
