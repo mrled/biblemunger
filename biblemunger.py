@@ -85,41 +85,32 @@ class Bible(object):
                 re.sub(old, new, verse.text, flags=re.IGNORECASE),
                 verse.verse, verse.chapter, verse.book)]
         return munged
-            
-
-about_template_text = """
-<ul>
-  <li>Mallory Ortberg wrote <a href="http://the-toast.net/tag/bible-verses/">some good stuff</a>. </li>
-  <li>I thought it was funny so I banged together this thing</li>
-  <li>Love, Micah</li>
-</ul>
-%if favorites:
-  <h2>Suggestions:</h2>
-  <ul>
-    %for fav in favorites:
-      <li><a href="/?search=${fav['search']}&replace=${fav['replace']}">sed s/${fav['search']}/${fav['replace']}</a></li>
-    %endfor
-  </ul>
-%endif
-</ul>
-"""
-about_template = Template(about_template_text)
 
 index_template_text = """
-<html><head><title>${title}</title></head>
+<html><head><title>${pagetitle}</title></head>
 <body><center>
+<h2><a href="/">${apptitle}</a></h2>
+<p>Find some text in the Bible and replace it with other text.</p>
+<p>(Based on <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallor Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/files/Bibles/ENG/King%20James/King%20James%20Version/SF_2009-01-23_ENG_KJV_%28KING%20JAMES%20VERSION%29.zip/download">the Zefania project</a>.)</p>
+%if favorites:
+  <p>Can't think of anything to search for? Try these:
+  <ul style="list-style:none;">
+    %for fav in favorites:
+      <li><a href="/?search=${fav['search']}&replace=${fav['replace']}">${fav['search']} &rArr; ${fav['replace']}</a></li>
+    %endfor
+  </ul></p>
+%endif
 <form method=GET action="/">
 <table border=0 cellpadding=5 cellspacing=5><tr>
 <td valign="TOP">Search: <input type=text name="search" size=20></td>
 <td valign="TOP">Replace: <input type=text name="replace" size=20></td>
 <td valign="TOP"><input type=submit value="Munge"></td>
-<td valign="TOP"><p><a href="/about">wtf?</a></p></td>
 </tr>
 </table>
 </form>
 %if queried:
   %if results:
-    <h2>${title}</h2>
+    <h2>${resultstitle}</h2>
     <table border=0 cellspacing=5 cellpadding=5 width="540" align="CENTER">
     %for verse in results:
       ${verse.htmltr()}
@@ -139,24 +130,31 @@ class BibleMungingServer(object):
 
     @cherrypy.expose
     def index(self, search=None, replace=None):
+        apptitle = "fuck with the holy scriptures"
+        pagetitle = apptitle
+        queried = False
+        resultstitle = None
+        results = None
+        
         if search and replace:
+            resultstitle = "cat kjv | sed s/{}/{}/g".format(search, replace)
+            pagetitle = resultstitle
             results = self.bible.replace(search, replace)
-            return index_template.render(
-                title="cat kjv | sed s/{}/{}/g".format(search,replace),
-                queried=True,
-                results=self.bible.replace(search, replace))
-        else:
-            return index_template.render(title="fuck with the holy scriptures")
+            queried = True
 
-    @cherrypy.expose
-    def about(self):
-        return about_template.render(favorites=[
+        favorites = [
             {'search':'hearts', 'replace':'feels'},
             {'search':'servant', 'replace':'uber driver'},
             {'search':'exile', 'replace':'otaku'},
-            {'search':'the saints', 'replace':'my waifu'},
-            ])
-            
+            {'search':'the saints', 'replace':'my waifu'}]
+
+        return index_template.render(
+            pagetitle = pagetitle,
+            apptitle = apptitle,
+            queried = queried,
+            resultstitle = resultstitle,
+            results = results,
+            favorites = favorites)
 
 def main(*args, **kwargs):
     parser = argparse.ArgumentParser(
