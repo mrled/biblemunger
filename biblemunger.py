@@ -87,14 +87,33 @@ class Bible(object):
         return munged
             
 
+about_template_text = """
+<ul>
+  <li>Mallory Ortberg wrote <a href="http://the-toast.net/tag/bible-verses/">some good stuff</a>. </li>
+  <li>I thought it was funny so I banged together this thing</li>
+  <li>Love, Micah</li>
+</ul>
+%if favorites:
+  <h2>Suggestions:</h2>
+  <ul>
+    %for fav in favorites:
+      <li><a href="/?search=${fav['search']}&replace=${fav['replace']}">sed s/${fav['search']}/${fav['replace']}</a></li>
+    %endfor
+  </ul>
+%endif
+</ul>
+"""
+about_template = Template(about_template_text)
+
 index_template_text = """
 <html><head><title>${title}</title></head>
 <body><center>
-<form method=POST action="/">
+<form method=GET action="/">
 <table border=0 cellpadding=5 cellspacing=5><tr>
 <td valign="TOP">Search: <input type=text name="search" size=20></td>
 <td valign="TOP">Replace: <input type=text name="replace" size=20></td>
-<td valign="TOP"><input type=submit value="Search"></td>
+<td valign="TOP"><input type=submit value="Munge"></td>
+<td valign="TOP"><p><a href="/about">wtf?</a></p></td>
 </tr>
 </table>
 </form>
@@ -127,7 +146,17 @@ class BibleMungingServer(object):
                 queried=True,
                 results=self.bible.replace(search, replace))
         else:
-            return index_template.render(title="fuck with the kjv")
+            return index_template.render(title="fuck with the holy scriptures")
+
+    @cherrypy.expose
+    def about(self):
+        return about_template.render(favorites=[
+            {'search':'hearts', 'replace':'feels'},
+            {'search':'servant', 'replace':'uber driver'},
+            {'search':'exile', 'replace':'otaku'},
+            {'search':'the saints', 'replace':'my waifu'},
+            ])
+            
 
 def main(*args, **kwargs):
     parser = argparse.ArgumentParser(
