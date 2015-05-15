@@ -91,7 +91,7 @@ index_template_text = """
 <body><center>
 <h2><a href="/">${apptitle}</a></h2>
 <p>Find some text in the Bible and replace it with other text.</p>
-<p>(Based on <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallor Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/files/Bibles/ENG/King%20James/King%20James%20Version/SF_2009-01-23_ENG_KJV_%28KING%20JAMES%20VERSION%29.zip/download">the Zefania project</a>.)</p>
+<p>(Based on <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/files/Bibles/ENG/King%20James/King%20James%20Version/SF_2009-01-23_ENG_KJV_%28KING%20JAMES%20VERSION%29.zip/download">the Zefania project</a>.)</p>
 %if favorites:
   <p>Can't think of anything to search for? Try these:
   <ul style="list-style:none;">
