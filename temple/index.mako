@@ -3,6 +3,12 @@
   <title>${pagetitle}</title>
   <script type="text/javascript" src="./static/bmweb.js"></script>
   <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
+  <meta name="title" content="${apptitle}" />
+  %if search and replace:
+    <meta name="description" content="${resultstitle}" />
+  %else:
+    <meta name="description" contents="${appsubtitle}" />
+  %endif
 </head>
 <body><center>
 
