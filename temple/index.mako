@@ -7,7 +7,7 @@
   <meta property="og:image" content="./static/anti-christ_upside_down_cross.png" />
   %if queried:
     %if results:
-      <meta name="description" content="${results[random.randrange(len(results))].text}" />
+      <meta name="description" content="${results[random.randrange(len(results))].__str__()}" />
     %else:
       <meta name="description" content="No results for ${search} :(" />
     %endif
