@@ -21,7 +21,8 @@ Replace "hearts" with "feels":
 There's lots of room for improvement
 
 - CSS not tables (lol)
-- Mark up the replaced text. Allow client-side JS to embolden the replaced text with a checkbox.
 - Allow replacement of multiple things at once.
   (Would love to be able to replace "sons" and "daughters" at the same time, for example.)
 - Keep track of recent and popular replacements so that people can have things to click on when they first load the page
+- Allow running at a subdir
+- Give it a permanent URL

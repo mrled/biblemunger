@@ -6,8 +6,8 @@ import argparse
 import sys
 from pdb import set_trace as strace
 
-import cherrypy
-from mako.template import Template
+apptitle = "biblemunger"
+appsubtitle = "fuck with the holy scriptures"
 
 class BibleVerse(object):
 
@@ -71,125 +71,20 @@ class Bible(object):
     def replace(self, old, new):
         munged = []
         for verse in self.search(old):
-            plaintext = re.sub(old, new, verse.text, flags=re.IGNORECASE)
+            f = re.IGNORECASE
+            plaintext = re.sub(old, new, verse.text, flags=f)
             markedtext = re.sub(
-                new, '<a class="munged">{}</a>'.format(new), plaintext,
-                flags=re.IGNORECASE)
+                old, '<a class="munged">{}</a>'.format(new), verse.text,
+                flags=f)
             munged += [BibleVerse(
                 (plaintext, markedtext),
-                #re.sub(old, new, verse.text, flags=re.IGNORECASE),
                 verse.verse, verse.chapter, verse.book)]
         return munged
 
-#      /* mungeds[i].className += " embolden"; */
-#      /* mungeds[i].className.replace(/\bembolden\b/,''); */
-index_template_text = """
-<html>
-<head>
-<title>${pagetitle}</title>
-<style>
-a.embolden { font-weight:bold; };
-</style>
-<script>
-function emboldenMunged() {
-  var mungeds = document.getElementsByClassName("munged");
-  unembolden_re = new RegExp(" ?embolden", "g");
-  for (var i=0, il = mungeds.length; i<il; ++i) {
-    if (document.getElementById("emboldenbox").checked) {
-      mungeds[i].className += " embolden";
-    }
-    else {
-      mungeds[i].className = mungeds[i].className.replace(unembolden_re,"");
-   }
-  }
-}
-window.onload = emboldenMunged;
-</script>
-</head>
-<body><center>
-<h2><a href="/">${apptitle}</a></h2>
-<p>Find some text in the Bible and replace it with other text.</p>
-<p>(Based on <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/files/Bibles/ENG/King%20James/King%20James%20Version/SF_2009-01-23_ENG_KJV_%28KING%20JAMES%20VERSION%29.zip/download">the Zefania project</a>.)</p>
-%if favorites:
-  <p>Can't think of anything to search for? Try these:
-  <ul style="list-style:none;">
-    %for fav in favorites:
-      <li><a href="/?search=${fav['search']}&replace=${fav['replace']}">${fav['search']} &rArr; ${fav['replace']}</a></li>
-    %endfor
-  </ul></p>
-%endif
-<form method=GET action="/">
-<table border=0 cellpadding=5 cellspacing=5><tr>
-%if search:
-  <td valign="TOP">Search:  <input type=text name="search"  value="${search}"  size=20 autofocus="true"></td>
-%else: 
-  <td valign="TOP">Search:  <input type=text name="search" size=20 autofocus="true"></td>
-%endif
-%if replace:
-  <td valign="TOP">Replace: <input type=text name="replace" value="${replace}" size=20></td>
-%else: 
-  <td valign="TOP">Replace: <input type=text name="replace" size=20></td>
-%endif
-<td valign="TOP"><input type=submit value="Munge"></td>
-</tr>
-</table>
-</form>
-%if queried:
-  <h2>${resultstitle}</h2>
-  <p>Embolden replacement text 
-    <input name="embolden" id="emboldenbox" type="checkbox" checked="checked" onclick="emboldenMunged()"></p>
-  <div id="results">
-    %if results:
-      <table border=0 cellspacing=5 cellpadding=5 width="540" align="CENTER">
-      %for verse in results:
-        ${verse.htmltr()}
-      %endfor
-      </table>
-    %else:
-      <p>None</p>
-  </div>
-  %endif
-%endif     
-</center></body></html>
-"""
-index_template = Template(index_template_text)
-class BibleMungingServer(object):
-    def __init__(self):
-        self.bible = Bible('./kjv.xml')
-
-    @cherrypy.expose
-    def index(self, search=None, replace=None):
-        apptitle = "fuck with the holy scriptures"
-        pagetitle = apptitle
-        queried = False
-        resultstitle = None
-        results = None
-        
-        if search and replace:
-            resultstitle = "cat kjv | sed s/{}/{}/g".format(search, replace)
-            pagetitle = resultstitle
-            results = self.bible.replace(search, replace)
-            queried = True
-
-        favorites = [
-            {'search':'hearts',     'replace':'feels'},
-            {'search':'servant',    'replace':'uber driver'},
-            {'search':'exile',      'replace':'otaku'},
-            {'search':'the saints', 'replace':'my waifu'}]
-
-        return index_template.render(
-            pagetitle = pagetitle,
-            apptitle = apptitle,
-            queried = queried,
-            resultstitle = resultstitle,
-            results = results,
-            favorites = favorites,
-            search = search,
-            replace = replace)
-
 def main(*args, **kwargs):
+    global appsubtitle
     parser = argparse.ArgumentParser(
-        description='Fuck with the Bible')
+        description=appsubtitle)
     actiong = parser.add_mutually_exclusive_group()
     actiong.add_argument(
         '--search', '-s', action='store',
@@ -208,17 +103,17 @@ def main(*args, **kwargs):
 
     parsed = parser.parse_args()
     if parsed.web:
-        cherrypy.config.update({
-            'server.socket_port': 8187,       #BIBL
-            'server.socket_host': '0.0.0.0'})
-
-        cherrypy.quickstart(BibleMungingServer())
-    if parsed.search:
+        import bmweb
+        bmweb.run()
+    elif parsed.search:
         for verse in bible.search(parsed.search):
             print(verse)
-    if parsed.replace:
+    elif parsed.replace:
         for verse in bible.replace( parsed.replace[0], parsed.replace[1] ):
             print(verse)
+    else:
+        print(parser.format_help())
+        sys.exit()
 
 if __name__ == '__main__':
     sys.exit(main(*sys.argv))
