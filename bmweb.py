@@ -1,4 +1,5 @@
 import os
+import random
 
 import cherrypy
 from mako.template import Template

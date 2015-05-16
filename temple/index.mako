@@ -3,11 +3,16 @@
   <title>${pagetitle}</title>
   <script type="text/javascript" src="./static/bmweb.js"></script>
   <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
-  <meta name="title" content="${apptitle}" />
-  %if search and replace:
-    <meta name="description" content="${resultstitle}" />
+  <meta name="og:title" content="${apptitle} - ${appsubtitle}" />
+  <meta property="og:image" content="./static/anti-christ_upside_down_cross.png" />
+  %if queried:
+    %if results:
+      <meta name="description" content="${results[random.randrange(len(results))].text}" />
+    %else:
+      <meta name="description" content="No results for ${search} :(" />
+    %endif
   %else:
-    <meta name="description" contents="${appsubtitle}" />
+    <meta property="og:description" content="${appsubtitle}" />
   %endif
 </head>
 <body><center>
