@@ -1,14 +1,14 @@
 <html>
 <head>
   <title>${pagetitle}</title>
-  <script type="text/javascript" src="/static/bmweb.js"></script>
-  <link type="text/css" rel="stylesheet" href="static/bmweb.css"></link>
+  <script type="text/javascript" src="./static/bmweb.js"></script>
+  <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
 </head>
 <body><center>
 
 <a href="https://github.com/mrled/biblemunger"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"></a>
 
-<h1><a href="/">${apptitle}</a></h1>
+<h1><a href="./">${apptitle}</a></h1>
 <p class="headingCaption">${appsubtitle}</p>
 
 <p>Find some text in the Bible and replace it with other text.</p>
@@ -18,12 +18,12 @@
   <p>Can't think of anything to search for? Try these:
   <ul style="list-style:none;">
     %for fav in favorites:
-      <li><a href="/?search=${fav['search']}&replace=${fav['replace']}">${fav['search']} &rArr; ${fav['replace']}</a></li>
+      <li><a href="./?search=${fav['search']}&replace=${fav['replace']}">${fav['search']} &rArr; ${fav['replace']}</a></li>
     %endfor
   </ul></p>
 %endif
 
-<form method=GET action="/">
+<form method=GET action="./">
 <table border=0 cellpadding=5 cellspacing=5><tr>
 %if search:
   <td valign="TOP">Search:  <input type=text name="search"  value="${search}"  size=20 autofocus="true"></td>

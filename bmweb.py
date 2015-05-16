@@ -96,8 +96,8 @@ class BibleMungingServer(object):
 def run():
     global scriptdir
     cherrypy.config.update({
-        'server.socket_port': 8187,        #BIBL
-        'server.socket_host': '0.0.0.0'})
+        'server.socket_port': 8187, #BIBL
+        'server.socket_host': '127.0.0.1'})
     fvicopath = "{}/static/favicon.ico".format(scriptdir)
     cp_root_config = {
         '/': {
