@@ -1,15 +1,17 @@
 <html>
 <head>
   <title>${pagetitle}</title>
-  <style type="text/css" src="/static/bmweb.css"></style>
-  <script src="/static/bmweb.js"></script>
+  <script type="text/javascript" src="/static/bmweb.js"></script>
+  <link type="text/css" rel="stylesheet" href="static/bmweb.css"></link>
 </head>
-
 <body><center>
-<h2><a href="/">${apptitle}</a></h2>
-<p>${appsubtitle}</p>
+
+<h1><a href="/">${apptitle}</a></h1>
+<p class="headingCaption">${appsubtitle}</p>
+
 <p>Find some text in the Bible and replace it with other text.</p>
-<p>(Based on <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/files/Bibles/ENG/King%20James/King%20James%20Version/SF_2009-01-23_ENG_KJV_%28KING%20JAMES%20VERSION%29.zip/download">the Zefania project</a>, which probably doesn't appreciate this use of it.)</p>
+<p><i>(Inspired by <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/">the Zefania project</a>, which probably doesn't appreciate this use of it.)</i></p>
+
 %if favorites:
   <p>Can't think of anything to search for? Try these:
   <ul style="list-style:none;">
@@ -18,6 +20,7 @@
     %endfor
   </ul></p>
 %endif
+
 <form method=GET action="/">
 <table border=0 cellpadding=5 cellspacing=5><tr>
 %if search:
@@ -34,6 +37,7 @@
 </tr>
 </table>
 </form>
+
 %if queried:
   <h2>${resultstitle}</h2>
   <p>Embolden replacement text 
