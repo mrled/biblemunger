@@ -8,7 +8,7 @@ body {
 }
 
 #bodyContent {
-    max-width: 600px;
+    max-width: 35em;
     margin: 0 auto;
 }
 
@@ -16,14 +16,34 @@ body {
     list-style:none;
 }
 
-.labelAndBox {
-    display: inline-block; 
+#searchSubsection {
+    margin-top: 3em;
 }
 
-p.headingCaption {
-    border-top: 1px;
+#subtitleH2 {
     font-size:  0.8em;
     font-style: italic;
+    font-weight: normal;
+}
+
+#cutesyFuckingIcon {
+    float:left;
+    margin-right: 3em;
+}
+#introText {
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.strikeThru {
+    text-decoration: line-through;
+}
+.clearLeft {
+    clear: left
+}
+
+.labelAndBox {
+    display: inline-block; 
 }
 
 .embolden { 
