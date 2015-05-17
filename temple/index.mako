@@ -35,13 +35,13 @@
 %endif
 
 <form id="mungerForm" method=GET action="./">
-<span id="searchBox">Search:  
-  <input type=text name="search"  value="${search}"  size=20 autofocus="true" autocapitalize="off"/>
-</span>
-<span id="replaceBox">Replace: 
-  <input type=text name="replace" value="${replace}" size=20 autocapitalize="off" />
-</span>
-<span id="mungeButton"><input type=submit value="Munge" /></span>
+  <span id="searchBox">Search:
+    <input type=text name="search" size=20 autofocus="true" autocapitalize="off"
+      value="${search if search else ""}" /></span>
+  <span id="replaceBox">Replace:
+    <input type=text name="replace" size=20 autocapitalize="off"
+      value="${replace if replace else ""}" /></span>
+  <span id="mungeButton"><input type=submit value="Munge" /></span>
 </form>
 
 %if queried:
