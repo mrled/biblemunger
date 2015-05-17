@@ -110,6 +110,7 @@ class BibleMungingServer(object):
                 self.search_in_list(self.recent_searches, search, replace)):
             return
 
+
         conn = sqlite3.connect(dbname)
         c = conn.cursor()
         c.execute("insert into recent_searches values (?, ?)", (search, replace))
@@ -125,7 +126,8 @@ class BibleMungingServer(object):
         results = None
         
         if search and replace:
-            resultstitle = "{} &rArr; {}".format(search, replace)
+            #resultstitle = "{} &rArr; {}".format(search, replace)
+            resultstitle = "{} ⇒ {}".format(search, replace)
             pagetitle = "{}: {}".format(biblemunger.apptitle, resultstitle)
             queried = True
             results = self.bible.replace(search, replace)

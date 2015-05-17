@@ -1,25 +1,25 @@
 <html>
 <head>
-  <title>${pagetitle}</title>
+  <title>${pagetitle |h}</title>
   <script type="text/javascript" src="./static/bmweb.js"></script>
   <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
-  <meta name="og:title" content="${pagetitle}" />
+  <meta name="og:title" content="${pagetitle |h}" />
   <link rel="image_src" href="./static/bible.png" />
   %if results:
     ## NOTE: Facebook will ignore any text that contains markup here :(
     ##       so we cannot embolden our munged terms :(:(
-    <meta property="og:description" content="${str(results[random.randrange(len(results))])}" />
+    <meta property="og:description" content="${str(results[random.randrange(len(results))]) |h}" />
   %elif queried:
-    <meta property="og:description" content="No results for ${search} :(" />
+    <meta property="og:description" content="No results for ${search |h} :(" />
   %else:
-    <meta property="og:description" content="${appsubtitle}" />
+    <meta property="og:description" content="${appsubtitle |h}" />
   %endif
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
 </head>
 <body><div id="bodyContent">
 
-<h1><a href="./">${apptitle}</a></h1>
-<h2 id="subtitleH2">${appsubtitle}</h2>
+<h1><a href="./">${apptitle |h}</a></h1>
+<h2 id="subtitleH2">${appsubtitle |h}</h2>
 
 <div id="intro">
   <div id="cutesyFuckingIcon" class="sectionGlyphLeft">
@@ -37,7 +37,7 @@
   ## We aren't setting sectionGlyphLeft here because I can't fucking make it look right
   <div id="wtfSectionListContainer" class="sectionContentRight">
     <ul id="wtfSectionList" class="noBullets">
-      <li class="halfSpacedList">${apptitle} is a stupid thing that will replace arbitrary text in the Bible with other arbitrary text</li>
+      <li class="halfSpacedList">${apptitle |h} is a stupid thing that will replace arbitrary text in the Bible with other arbitrary text</li>
       <li class="halfSpacedList">It was inspired by <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg</li>
       <li class="halfSpacedList">It uses an XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/">the Zefania project</a>, which probably would not appreciate this at all</li>
       <li class="halfSpacedList"><a href="http://younix.us">mrled</a> is responsible for this bullshit</li>
@@ -63,7 +63,7 @@
       <ul class="noBullets"> 
         %for fav in favorites:
           <% s = fav['search']; r = fav['replace'] %>
-          <li><a href="./?search=${s}&replace=${r}">${s} &rArr; ${r}</a></li>
+          <li><a href="./?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
         %endfor
       </ul>
     %else:
@@ -80,7 +80,7 @@
             ##    <% break %> 
             ##%endif
             <% s = rec['search']; r = rec['replace'] %>
-            <li><a href="./?search=${s}&replace=${r}">${s} &rArr; ${r}</a></li>
+            <li><a href="./?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
         %endfor
       </ul></p>
     %else:
@@ -94,24 +94,24 @@
 <form id="mungerForm" method=GET action="./">
   <span class="labelAndBox" id="searchBox">Search:
     <input type=text name="search" size=20 autofocus="true" autocapitalize="off"
-      value="${search if search else ""}" /></span>
+      value="${search if search else '' |h}" /></span>
   <span class="labelAndBox" id="replaceBox">Replace:
     <input type=text name="replace" size=20 autocapitalize="off"
-      value="${replace if replace else ""}" /></span>
+      value="${replace if replace else '' |h}" /></span>
   <span id="mungeButton"><input type=submit value="Munge" /></span>
 </form>
 </div>
 
 %if queried:
-  <h2>${resultstitle}</h2>
+  <h2>${resultstitle |h}</h2>
   <p>Embolden replacement text 
     <input name="embolden" id="emboldenbox" type="checkbox" checked="checked" onclick="emboldenMunged()"></p>
   <div id="mungedResults">
     %if results:
       <table border=0 cellspacing=5 cellpadding=5 align="CENTER">
       %for verse in results:
-        <tr><td><strong>${verse.book} ${verse.chapter}:${verse.verse}</strong></td>
-        <td>${verse.text_markedup}</td></tr>
+        <tr><td><strong>${verse.book |h} ${verse.chapter |h}:${verse.verse |h}</strong></td>
+        <td>${verse.text |h}</td></tr>
       %endfor
       </table>
     %else:
