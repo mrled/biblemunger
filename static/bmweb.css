@@ -37,6 +37,10 @@ ul.noBullets {
     max-width: 60%;
 }
 
+.sectionContentCenter {
+    display: inline-block;
+}
+
 li.halfSpacedList {
     margin-bottom: .5em;
 }

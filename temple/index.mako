@@ -27,15 +27,16 @@
   </div>
   <div id="introText" class="sectionContentRight">
     <p>Find some text in the Bible and replace it with other text.</p>
-    <input type="button" value="About" onclick="toggleHideWtf();" />
+    <input type="button" value="About" onclick="toggleHideId('wtfSection');" />
+    <input type="button" value="Help" onclick="toggleHideId('helpSection');" />
   </div>
 </div>
 
 <div id="wtfSection">
-  <script>toggleHideWtf()</script> 
+  <script>toggleHideId('wtfSection')</script> 
   <h2>What the fuck is this?</h2>
   ## We aren't setting sectionGlyphLeft here because I can't fucking make it look right
-  <div id="wtfSectionListContainer" class="sectionContentRight">
+  <div id="wtfSectionListContainer" class="sectionContentCenter">
     <ul id="wtfSectionList" class="noBullets">
       <li class="halfSpacedList">${apptitle |h} is a stupid thing that will replace arbitrary text in the Bible with other arbitrary text</li>
       <li class="halfSpacedList">It was inspired by <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg</li>
@@ -46,18 +47,30 @@
   </div>
 </div>
 
+<div id="helpSection">
+  <script>toggleHideId('helpSection')</script> 
+  <h2>How the fuck do I use this?</h2>
+  <div id="helpSectionListContainer" class="sectionContentCenter">
+    <ul id="helpSectionList" class="noBullets">
+      <li class="halfSpacedList">Note that it will even search/replace just a <em>part</em> of a word. For instance, in the <a href="./?search=servant&replace=uber%20driver">"servant" &rArr; "uber driver"</a> search, note that some verses now refer to "<strong>menuber drivers and maiduber drivers</strong>" (from <strong>menservants and maidservants</strong>)</li>
+      <li class="halfSpacedList">However, it does search/replace numbers and punctuation, not just letters, so if the above behavior is undesirable, surround your search and your replacement with spaces. For example, <a href="./?search=servant&replace=uber%20driver">" servant " &rArr; " uber driver "</a> will only find instances of "servant" when it's surrounded by spaces. (This also means that it will not find results of "servant" when followed by punctuation.)</li>
+      <li class="halfSpacedList">One final thing to note: because it's so strict, it currently is case sensitive, such that <a href="./?search=LORD&replace=kickstarter+backer">LORD &rArr; kickstarter backer</a> will find completely different results than <a href="./?search=lord&replace=kickstarter+backer">lord &rArr; kickstarter backer</a>, which will find completely different results than <a href="./?search=Lord&replace=kickstarter+backer">Lord &rArr; kickstarter backer</a>. This means that, currently, an uncapitalized search term will never match a word that begins a sentence.</li>
+    </ul>
+  </div>
+</div>
+
 <div class="clearLeft">
 
 %if favorites or recents:
   <h2>Suggestions</h2>
   <p>Can't think of anything to search for?</p>
   <p>
-    <input type="button" value="Show Favorite Searches" onclick="toggleHideFavorites();" />
-    <input type="button" value="Show Recent Searches" onclick="toggleHideRecents();" />
+    <input type="button" value="Show Favorite Searches" onclick="toggleHideId('searchFavorites');" />
+    <input type="button" value="Show Recent Searches" onclick="toggleHideId('searchRecents');" />
   </p>
 
   <div id="searchFavorites">
-    <script>toggleHideFavorites()</script> 
+    <script>toggleHideId('searchFavorites')</script> 
     %if favorites:
       <p>These are some of my favorites:</p>
       <ul class="noBullets"> 
@@ -71,7 +84,7 @@
     %endif
   </div>
   <div id="searchRecents">    
-    <script>toggleHideRecents()</script> 
+    <script>toggleHideId('searchRecents')</script> 
     %if recents:
       <p>Here are some recent searches by users:</p>
       <ul class="noBullets"> 

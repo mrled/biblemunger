@@ -11,6 +11,16 @@ function emboldenMunged() {
         }
     }
 }
+function toggleHideId(Id) {
+    elem = document.getElementById(Id);
+    if (elem.style.display == "") {
+        elem.style.display = "none";
+    }
+    else {
+        elem.style.display = "";
+    }
+}
+/*
 function toggleHideWtf() {
     elem = document.getElementById("wtfSection");
     if (elem.style.display == "") {
@@ -39,6 +49,7 @@ function toggleHideRecents() {
         elem.style.display = "";
     }
 }
+*/
 window.onload = function() { 
     emboldenMunged();  
 };
