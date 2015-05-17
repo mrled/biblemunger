@@ -37,9 +37,7 @@ Furthermore, this can solve the subdirectory problem:
 
 ## TODO
 
-There's lots of room for improvement
-
 - Allow replacement of multiple things at once.
   (Would love to be able to replace "sons" and "daughters" at the same time, for example.)
-- Keep track of recent and popular replacements so that people can have things to click on when they first load the page
-- Make it look better on an iPhone screen
+- Select the shortest verse for the `og:description` so you're most likely to see the whole thing when shared to FB etc
+
