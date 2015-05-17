@@ -20,10 +20,14 @@
 <!-- <p class="headingCaption">${appsubtitle}</p> -->
 <h2 id="subtitleH2">${appsubtitle}</h2>
 
-<div id="cutesyFuckingIcon"><img src="static/bible.png" alt="The Holy Fucking Scriptures" /></div>
-<div id="introText">
-<p>Find some text in the Bible and replace it with other text.</p>
-<p><i>(Inspired by <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/">the Zefania project</a>, which probably would not appreciate this at all.)</i></p>
+<div id="intro">
+  <div id="cutesyFuckingIcon">
+    <img src="static/bible.png" alt="The Holy Fucking Scriptures" style="max-width:100%"/>
+  </div>
+  <div id="introText">
+    <p>Find some text in the Bible and replace it with other text.</p>
+    <p><i>(Inspired by <a href="http://the-toast.net/tag/bible-verses/">some excellence</a> by Mallory Ortberg. XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/">the Zefania project</a>, which probably would not appreciate this at all.)</i></p>
+  </div>
 </div>
 
 <div class="clearLeft">

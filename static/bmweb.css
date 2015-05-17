@@ -27,12 +27,15 @@ body {
 }
 
 #cutesyFuckingIcon {
-    float:left;
+    display: inline-block;
     margin-right: 3em;
+    width: 30%;
 }
 #introText {
-    box-sizing: border-box;
+    display: inline-block;
     text-align: left;
+    max-width: 60%;
+    margin-top: 0em;
 }
 
 .strikeThru {
