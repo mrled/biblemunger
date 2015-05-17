@@ -2,6 +2,12 @@
 
 Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toast.net/tag/bible-verses/)
 
+## Requirements
+
+- For the CLI, only Python3 is required.
+- For the web server, the mako and cherrypy modules must be installed. 
+  - Note that CherryPy for Python 3 in Ubuntu 14.04 LTS is version `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a few seconds after it's started with an error like `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not bound on '127.0.0.1'",)`, even if the port open. Not sure if this applies to vanilla CherryPy 3.2.2.
+
 ## CLI
 
 Find the text "hearts": 
