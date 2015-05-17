@@ -32,6 +32,8 @@
 </div>
 
 <div id="wtfSection">
+  ## Do this here, not in window.onload(), to prevent this section from flashing in and back out during page load:
+  <script>toggleHideWtf()</script> 
   <h2>What the fuck is this?</h2>
   ## We aren't setting sectionGlyphLeft here because I can't fucking make it look right
   <div id="wtfSectionListContainer" class="sectionContentRight">

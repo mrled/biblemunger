@@ -22,6 +22,5 @@ function toggleHideWtf() {
 }
 window.onload = function() { 
     emboldenMunged();  
-    toggleHideWtf();
 };
 
