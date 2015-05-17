@@ -23,14 +23,13 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
         try:
             rendered = self.template.render(**env)
         except:
-            if config.getboolean('debug'):
-                traceback = RichTraceback()
-                for (filename, lineno, function, line) in traceback.traceback:
-                    print('File {} line #{} function {}'.format(filename, 
-                        lineno, function))
-                    print('    {}'.format(line))
-            else:
-                raise
+            traceback = RichTraceback()
+            for (filename, lineno, function, line) in traceback.traceback:
+                print('File {} line #{} function {}'.format(
+                    filename, 
+                    lineno, function))
+                print('    {}'.format(line))
+            raise
 
         return self.template.render(**env)
 

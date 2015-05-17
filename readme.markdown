@@ -39,7 +39,6 @@ Furthermore, this can solve the subdirectory problem:
 
 There's lots of room for improvement
 
-- CSS not tables (lol)
 - Allow replacement of multiple things at once.
   (Would love to be able to replace "sons" and "daughters" at the same time, for example.)
 - Keep track of recent and popular replacements so that people can have things to click on when they first load the page

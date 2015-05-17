@@ -17,6 +17,7 @@ class BibleVerse(object):
             self.text_markedup = text[1]
         else:
             self.text = text
+            self.text_markedup = text
         self.verse = verse
         self.chapter = chapter
         self.book = book
@@ -24,10 +25,6 @@ class BibleVerse(object):
         string = "{} {}:{}: {}".format(
             self.book, self.chapter, self.verse, self.text)
         return string
-    def htmltr(self):
-        html = "<tr><td><strong>{} {}:{}</strong></td><td>{}</td>".format(
-            self.book, self.chapter, self.verse, self.text_markedup)
-        return html
 
 class Bible(object):
     def __init__(self, file):
@@ -74,7 +71,7 @@ class Bible(object):
             f = re.IGNORECASE
             plaintext = re.sub(old, new, verse.text, flags=f)
             markedtext = re.sub(
-                old, '<a class="munged">{}</a>'.format(new), verse.text,
+                old, '<span class="munged">{}</span>'.format(new), verse.text,
                 flags=f)
             munged += [BibleVerse(
                 (plaintext, markedtext),
