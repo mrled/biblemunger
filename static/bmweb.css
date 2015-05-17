@@ -12,6 +12,14 @@ body {
     margin: 0 auto;
 }
 
+#searchFaves {
+    list-style:none;
+}
+
+.labelAndBox {
+    display: inline-block; 
+}
+
 p.headingCaption {
     border-top: 1px;
     font-size:  0.8em;

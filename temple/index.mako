@@ -14,6 +14,8 @@
   %else:
     <meta property="og:description" content="${appsubtitle}" />
   %endif
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
+
 </head>
 <body><div id="bodyContent">
 
@@ -27,7 +29,7 @@
 
 %if favorites:
   <p>Can't think of anything to search for? Try these:
-  <ul style="list-style:none;">
+  <ul id="searchFaves"> 
     %for fav in favorites:
       <li><a href="./?search=${fav['search']}&replace=${fav['replace']}">${fav['search']} &rArr; ${fav['replace']}</a></li>
     %endfor
@@ -35,10 +37,10 @@
 %endif
 
 <form id="mungerForm" method=GET action="./">
-  <span id="searchBox">Search:
+  <span class="labelAndBox" id="searchBox">Search:
     <input type=text name="search" size=20 autofocus="true" autocapitalize="off"
       value="${search if search else ""}" /></span>
-  <span id="replaceBox">Replace:
+  <span class="labelAndBox" id="replaceBox">Replace:
     <input type=text name="replace" size=20 autocapitalize="off"
       value="${replace if replace else ""}" /></span>
   <span id="mungeButton"><input type=submit value="Munge" /></span>
