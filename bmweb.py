@@ -1,5 +1,7 @@
 import os
 import random
+import sqlite3
+from pdb import set_trace as strace
 
 import cherrypy
 from mako.template import Template
@@ -10,6 +12,7 @@ import biblemunger
 
 scriptdir = os.path.abspath(os.curdir)
 templepath = os.path.join(scriptdir, 'temple')
+dbname = 'bmweb.sqlite'
 
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
     """Callable which sets response.body."""
@@ -60,6 +63,58 @@ cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
 class BibleMungingServer(object):
     def __init__(self):
         self.bible = biblemunger.Bible('./kjv.xml')
+        self.favorite_searches = [
+            {'search':'hearts',        'replace':'feels'},
+            {'search':'servant',       'replace':'uber driver'},
+            {'search':'thy salvation', 'replace':'dat ass'},
+            {'search':'staff',         'replace':'dick'}]
+
+        conn = sqlite3.connect(dbname)
+        c = conn.cursor()
+        c.execute(
+            "select name from sqlite_master where type='table' and name='recent_searches'")
+        if not c.fetchone():
+            self.initialize_database()
+
+    def search_in_list(self, searchlist, search, replace):
+        for s in searchlist:
+            if s['search'] == search and s['replace'] == replace:
+                return True
+        else:
+            return False
+
+    @property
+    def recent_searches(self):
+        conn = sqlite3.connect(dbname)
+        c = conn.cursor()
+        c.execute(
+            "select search, replace from recent_searches")
+        results = c.fetchall()
+        conn.close()
+        searches = []
+        for r in results:
+            searches += [{'search': r[0], 'replace':r[1]}]
+        return searches
+        
+
+    def initialize_database(self):
+        conn = sqlite3.connect(dbname)
+        c = conn.cursor()
+        c.execute('''create table recent_searches (search, replace)''')
+        conn.commit()
+        conn.close()
+
+    def add_recent_search(self, search, replace):
+        if (
+                self.search_in_list(self.favorite_searches, search, replace) or
+                self.search_in_list(self.recent_searches, search, replace)):
+            return
+
+        conn = sqlite3.connect(dbname)
+        c = conn.cursor()
+        c.execute("insert into recent_searches values (?, ?)", (search, replace))
+        conn.commit()
+        conn.close()
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename='index.mako')
@@ -72,14 +127,10 @@ class BibleMungingServer(object):
         if search and replace:
             resultstitle = "{} &rArr; {}".format(search, replace)
             pagetitle = "{}: {}".format(biblemunger.apptitle, resultstitle)
-            results = self.bible.replace(search, replace)
             queried = True
-
-        favorites = [
-            {'search':'hearts',     'replace':'feels'},
-            {'search':'servant',    'replace':'uber driver'},
-            {'search':'exile',      'replace':'otaku'},
-            {'search':'the saints', 'replace':'my waifu'}]
+            results = self.bible.replace(search, replace)
+            if results:
+                self.add_recent_search(search, replace)
 
         return {
             'pagetitle':    pagetitle,
@@ -88,7 +139,8 @@ class BibleMungingServer(object):
             'queried':      queried,
             'resultstitle': resultstitle,
             'results':      results,
-            'favorites':    favorites,
+            'favorites':    self.favorite_searches,
+            'recents':      self.recent_searches,
             'search':       search,
             'replace':      replace}
 

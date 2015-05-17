@@ -32,7 +32,6 @@
 </div>
 
 <div id="wtfSection">
-  ## Do this here, not in window.onload(), to prevent this section from flashing in and back out during page load:
   <script>toggleHideWtf()</script> 
   <h2>What the fuck is this?</h2>
   ## We aren't setting sectionGlyphLeft here because I can't fucking make it look right
@@ -49,6 +48,47 @@
 
 <div class="clearLeft">
 
+%if favorites or recents:
+  <h2>Suggestions</h2>
+  <p>Can't think of anything to search for?</p>
+  <p>
+    <input type="button" value="Show Favorite Searches" onclick="toggleHideFavorites();" />
+    <input type="button" value="Show Recent Searches" onclick="toggleHideRecents();" />
+  </p>
+
+  <div id="searchFavorites">
+    <script>toggleHideFavorites()</script> 
+    %if favorites:
+      <p>These are some of my favorites:</p>
+      <ul class="noBullets"> 
+        %for fav in favorites:
+          <% s = fav['search']; r = fav['replace'] %>
+          <li><a href="./?search=${s}&replace=${r}">${s} &rArr; ${r}</a></li>
+        %endfor
+      </ul>
+    %else:
+      <p>Sorry, no favorite searches to show you :(</p>
+    %endif
+  </div>
+  <div id="searchRecents">    
+    <script>toggleHideRecents()</script> 
+    %if recents:
+      <p>Here are some recent searches by users:</p>
+      <ul class="noBullets"> 
+        %for rec in recents:
+            ##%if loop.index >= 10:
+            ##    <% break %> 
+            ##%endif
+            <% s = rec['search']; r = rec['replace'] %>
+            <li><a href="./?search=${s}&replace=${r}">${s} &rArr; ${r}</a></li>
+        %endfor
+      </ul></p>
+    %else:
+      <p>Sorry, no recent searches to show you :(</p>
+    %endif
+  </div>
+%endif
+
 <div id="searchSubsection">
 <h2>Search and <span class="strikeThru">destroy</span> replace</h2>
 <form id="mungerForm" method=GET action="./">
@@ -61,15 +101,6 @@
   <span id="mungeButton"><input type=submit value="Munge" /></span>
 </form>
 </div>
-
-%if favorites:
-  <p>Can't think of anything to search for? Try these:
-  <ul id="searchFaves" class="noBullets"> 
-    %for fav in favorites:
-      <li><a href="./?search=${fav['search']}&replace=${fav['replace']}">${fav['search']} &rArr; ${fav['replace']}</a></li>
-    %endfor
-  </ul></p>
-%endif
 
 %if queried:
   <h2>${resultstitle}</h2>
