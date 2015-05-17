@@ -3,19 +3,15 @@
   <title>${pagetitle}</title>
   <script type="text/javascript" src="./static/bmweb.js"></script>
   <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
-  <meta name="og:title" content="${apptitle} - ${appsubtitle}" />
-  <meta property="og:image" content="./static/anti-christ_upside_down_cross.png" />
-  %if queried:
-    %if results:
-      <meta name="description" content="${results[random.randrange(len(results))].__str__()}" />
-    %else:
-      <meta name="description" content="No results for ${search} :(" />
-    %endif
+  <meta name="og:title" content="${pagetitle}" />
+  %if results:
+    <meta property="og:description" content="${str(results[random.randrange(len(results))])}" />
+  %elif queried:
+    <meta property="og:description" content="No results for ${search} :(" />
   %else:
     <meta property="og:description" content="${appsubtitle}" />
   %endif
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
-
 </head>
 <body><div id="bodyContent">
 
