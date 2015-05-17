@@ -111,7 +111,13 @@
       <table border=0 cellspacing=5 cellpadding=5 align="CENTER">
       %for verse in results:
         <tr><td><strong>${verse.book |h} ${verse.chapter |h}:${verse.verse |h}</strong></td>
-        <td>${verse.text |h}</td></tr>
+        <%
+            import re, markupsafe
+            escaped = markupsafe.escape(verse.text_markedup)
+            slashspanned = re.sub('\*\*\*\*\*\*', '</span>', escaped)
+            spanned = re.sub('\*\*\*\*\*', '<span class="munged">', slashspanned)
+        %>
+        <td>${spanned}</td></tr>
       %endfor
       </table>
     %else:

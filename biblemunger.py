@@ -71,7 +71,8 @@ class Bible(object):
             f = re.IGNORECASE
             plaintext = re.sub(old, new, verse.text, flags=f)
             markedtext = re.sub(
-                old, '<span class="munged">{}</span>'.format(new), verse.text,
+                #old, '<span class="munged">{}</span>'.format(new), verse.text,
+                old, '*****{}******'.format(new), verse.text,
                 flags=f)
             munged += [BibleVerse(
                 (plaintext, markedtext),
