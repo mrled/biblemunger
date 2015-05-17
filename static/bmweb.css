@@ -7,13 +7,13 @@ body {
     text-align: center;
 }
 
+ul.noBullets {
+    list-style: none;
+}
+
 #bodyContent {
     max-width: 35em;
     margin: 0 auto;
-}
-
-#searchFaves {
-    list-style:none;
 }
 
 #searchSubsection {
@@ -26,16 +26,19 @@ body {
     font-weight: normal;
 }
 
-#cutesyFuckingIcon {
+.sectionGlyphLeft {
     display: inline-block;
     margin-right: 3em;
-    width: 30%;
+    width: 10%;
 }
-#introText {
+.sectionContentRight {
     display: inline-block;
     text-align: left;
     max-width: 60%;
-    margin-top: 0em;
+}
+
+li.halfSpacedList {
+    margin-bottom: .5em;
 }
 
 .strikeThru {

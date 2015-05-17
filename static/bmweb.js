@@ -11,5 +11,17 @@ function emboldenMunged() {
         }
     }
 }
-window.onload = emboldenMunged;
+function toggleHideWtf() {
+    wtfElem = document.getElementById("wtfSection");
+    if (wtfElem.style.display == "") {
+        wtfElem.style.display = "none";
+    }
+    else {
+        wtfElem.style.display = "";
+    }
+}
+window.onload = function() { 
+    emboldenMunged();  
+    toggleHideWtf();
+};
 

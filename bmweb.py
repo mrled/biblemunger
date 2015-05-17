@@ -70,9 +70,8 @@ class BibleMungingServer(object):
         results = None
         
         if search and replace:
-            #resultstitle = "cat kjv | sed s/{}/{}/g".format(search, replace)
             resultstitle = "{} &rArr; {}".format(search, replace)
-            pagetitle = "{} - {}".format(biblemunger.apptitle, resultstitle)
+            pagetitle = "{}: {}".format(biblemunger.apptitle, resultstitle)
             results = self.bible.replace(search, replace)
             queried = True
 
