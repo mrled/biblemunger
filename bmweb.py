@@ -12,12 +12,17 @@ import cherrypy
 from mako.exceptions import RichTraceback
 from mako.lookup import TemplateLookup
 
+# Necessary because of WSGI
+scriptroot = os.path.dirname(os.path.realpath(__file__))
+sys.path = [scriptroot] + sys.path
+
 import biblemunger
+
 
 scriptdir = os.path.abspath(os.curdir)
 templepath = os.path.join(scriptdir, 'temple')
-dbname = 'bmweb.sqlite'
-faviconpath = "{}/static/favicon.ico".format(scriptdir)
+dbpath = os.path.join(scriptdir, 'bmweb.sqlite')
+faviconpath = os.path.join(scriptdir, 'static', 'favicon.ico')
 cp_root_config = {
     '/': {
         'tools.mako.directories': templepath,
@@ -93,14 +98,16 @@ cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
 class BibleMungingServer(object):
 
     def __init__(self):
-        self.bible = biblemunger.Bible('./kjv.xml')
+        global dbpath
+
+        self.bible = biblemunger.Bible(biblemunger.kjvpath)
         self.favorite_searches = [
             {'search': 'hearts',        'replace': 'feels'},
             {'search': 'servant',       'replace': 'uber driver'},
             {'search': 'thy salvation', 'replace': 'dat ass'},
             {'search': 'staff',         'replace': 'dick'}]
 
-        conn = sqlite3.connect(dbname)
+        conn = sqlite3.connect(dbpath)
         c = conn.cursor()
         c.execute(
             "select name from sqlite_master where type='table' and name='recent_searches'")
@@ -116,7 +123,8 @@ class BibleMungingServer(object):
 
     @property
     def recent_searches(self):
-        conn = sqlite3.connect(dbname)
+        global dbpath
+        conn = sqlite3.connect(dbpath)
         c = conn.cursor()
         c.execute(
             "select search, replace from recent_searches")
@@ -128,19 +136,22 @@ class BibleMungingServer(object):
         return searches
 
     def initialize_database(self):
-        conn = sqlite3.connect(dbname)
+        global dbpath
+        conn = sqlite3.connect(dbpath)
         c = conn.cursor()
         c.execute('''create table recent_searches (search, replace)''')
         conn.commit()
         conn.close()
 
     def add_recent_search(self, search, replace):
+        global dbpath
+
         if (
                 self.search_in_list(self.favorite_searches, search, replace) or
                 self.search_in_list(self.recent_searches, search, replace)):
             return
 
-        conn = sqlite3.connect(dbname)
+        conn = sqlite3.connect(dbpath)
         c = conn.cursor()
         c.execute("insert into recent_searches values (?, ?)", (search, replace))
         conn.commit()
@@ -176,22 +187,17 @@ class BibleMungingServer(object):
             'replace':      replace}
 
 
-def starthttp():
-    global cp_root_config
-    cherrypy.config.update({
-        'server.socket_port': 8187,  #BIBL
-        'server.socket_host': '127.0.0.1'})
-    cherrypy.tree.mount(BibleMungingServer(), '/', cp_root_config)
-    cherrypy.engine.start()
-    cherrypy.engine.block()
+# TODO: make it so I can choose between starting in dev mode (with starthttp()) and starting in prod mode (by setting the module-level "application" variable)
+# def starthttp():
+#     global cp_root_config
+#     cherrypy.config.update({
+#         'server.socket_port': 8187,  #BIBL
+#         'server.socket_host': '127.0.0.1'})
+#     cherrypy.tree.mount(BibleMungingServer(), '/', cp_root_config)
+#     cherrypy.engine.start()
+#     cherrypy.engine.block()
 
 
-def startwsgi():
-    global cp_root_config
-    sys.stdout = sys.stderr
-    cherrypy.config.update({'environment': 'embedded'})
-    return cherrypy.Application(BibleMungingServer(), script_name=None, config=cp_root_config)
-
-
-if __name__ == '__main__':
-    application = startwsgi()
+sys.stdout = sys.stderr
+cherrypy.config.update({'environment': 'embedded'})
+application = cherrypy.Application(BibleMungingServer(), script_name=None, config=cp_root_config)

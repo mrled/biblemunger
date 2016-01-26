@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
-import xml.etree.ElementTree as ET
-import re
 import argparse
+import os
+import re
 import sys
+import xml.etree.ElementTree as ET
 
 apptitle = "biblemunger"
 appsubtitle = "fuck with the holy scriptures"
+scriptroot = os.path.dirname(os.path.realpath(__file__))
+kjvpath = os.path.join(scriptroot, "kjv.xml")
 
 
 def strace():
@@ -108,7 +111,7 @@ def main(*args, **kwargs):
         '--web', '-w', action='store_true',
         help='Run a webserver')
 
-    bible = Bible('./kjv.xml')
+    bible = Bible(kjvpath)
 
     parsed = parser.parse_args()
     if parsed.web:
