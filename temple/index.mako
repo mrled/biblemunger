@@ -5,12 +5,10 @@
   <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
   <meta name="og:title" content="${pagetitle |h}" />
   <link rel="image_src" href="./static/bible.png" />
-  %if results:
+  %if sampleresult:
     ## NOTE: Facebook will ignore any text that contains markup here :(
     ##       so we cannot embolden our munged terms :(:(
-    <meta property="og:description" content="${str(results[random.randrange(len(results))]) |h}" />
-  %elif queried:
-    <meta property="og:description" content="No results for ${search |h} :(" />
+    <meta property="og:description" content="${sampleresult |h}" />
   %else:
     <meta property="og:description" content="${appsubtitle |h}" />
   %endif

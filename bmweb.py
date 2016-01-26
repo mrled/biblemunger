@@ -8,6 +8,7 @@ sys.stdout = sys.stderr
 
 import datetime
 import os
+import random
 import sqlite3
 
 import cherrypy
@@ -181,6 +182,7 @@ class BibleMungingServer(object):
         queried = False
         resultstitle = None
         results = None
+        sampleresult = None
 
         if search and replace:
             #resultstitle = "{} &rArr; {}".format(search, replace)
@@ -190,6 +192,7 @@ class BibleMungingServer(object):
             results = self.bible.replace(search, replace)
             if results:
                 self.add_recent_search(search, replace)
+                sampleresult = str(results[random.randrange(len(results))])
 
         return {
             'pagetitle':    pagetitle,
@@ -198,6 +201,7 @@ class BibleMungingServer(object):
             'queried':      queried,
             'resultstitle': resultstitle,
             'results':      results,
+            'sampleresult': sampleresult,
             'favorites':    self.favorite_searches,
             'recents':      self.recent_searches,
             'search':       search,
