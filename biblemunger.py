@@ -4,10 +4,15 @@ import xml.etree.ElementTree as ET
 import re
 import argparse
 import sys
-from pdb import set_trace as strace
 
 apptitle = "biblemunger"
 appsubtitle = "fuck with the holy scriptures"
+
+
+def strace():
+    from pdb import set_trace
+    set_trace()
+
 
 class BibleVerse(object):
 
@@ -21,12 +26,15 @@ class BibleVerse(object):
         self.verse = verse
         self.chapter = chapter
         self.book = book
+
     def __str__(self):
         string = "{} {}:{}: {}".format(
             self.book, self.chapter, self.verse, self.text)
         return string
 
+
 class Bible(object):
+
     def __init__(self, file):
         self.xmletree = ET.parse(file)
 
@@ -36,12 +44,14 @@ class Bible(object):
                 if child.tag == "BIBLEBOOK":
                     books += [child]
             return books
+
         def find_chapters(book):
             chapters = []
             for child in book:
                 if child.tag == "CHAPTER":
                     chapters += [child]
             return chapters
+
         def find_verses(chapter):
             verses = []
             for child in chapter:
@@ -79,6 +89,7 @@ class Bible(object):
                 verse.verse, verse.chapter, verse.book)]
         return munged
 
+
 def main(*args, **kwargs):
     global appsubtitle
     parser = argparse.ArgumentParser(
@@ -91,7 +102,7 @@ def main(*args, **kwargs):
         '--replace', '-r', nargs=2, action='store',
         help='Replace one string with another')
     # actiong.add_argument(
-    #     '--web', '-w', action='store', dest='webconfig', nargs='?', 
+    #     '--web', '-w', action='store', dest='webconfig', nargs='?',
     #     help='Run a webserver, optionally specifying a config file')
     actiong.add_argument(
         '--web', '-w', action='store_true',
@@ -102,12 +113,12 @@ def main(*args, **kwargs):
     parsed = parser.parse_args()
     if parsed.web:
         import bmweb
-        bmweb.run()
+        bmweb.starthttp()
     elif parsed.search:
         for verse in bible.search(parsed.search):
             print(verse)
     elif parsed.replace:
-        for verse in bible.replace( parsed.replace[0], parsed.replace[1] ):
+        for verse in bible.replace(parsed.replace[0], parsed.replace[1]):
             print(verse)
     else:
         print(parser.format_help())
@@ -115,4 +126,3 @@ def main(*args, **kwargs):
 
 if __name__ == '__main__':
     sys.exit(main(*sys.argv))
-

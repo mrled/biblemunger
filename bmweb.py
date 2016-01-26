@@ -1,10 +1,14 @@
+"""
+- To run as WSGI, run this file (bmweb) directly
+- To run using CherryPy's built-in webserver, run "biblemunger.py -w"
+"""
+
 import os
-import random
 import sqlite3
-from pdb import set_trace as strace
+import sys
 
 import cherrypy
-from mako.template import Template
+#from mako.template import Template
 from mako.exceptions import RichTraceback
 from mako.lookup import TemplateLookup
 
@@ -13,32 +17,57 @@ import biblemunger
 scriptdir = os.path.abspath(os.curdir)
 templepath = os.path.join(scriptdir, 'temple')
 dbname = 'bmweb.sqlite'
+faviconpath = "{}/static/favicon.ico".format(scriptdir)
+cp_root_config = {
+    '/': {
+        'tools.mako.directories': templepath,
+        'tools.staticdir.root': scriptdir},
+    '/static': {
+        'tools.staticdir.on': True,
+        'tools.staticdir.dir': 'static'},
+    "/favicon.ico": {
+        "tools.staticfile.on": True,
+        "tools.staticfile.filename": faviconpath}
+}
+
+
+def strace():
+    import pdb
+    pdb.set_trace()
+
 
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
+
     """Callable which sets response.body."""
+
     def __init__(self, template, next_handler):
         self.template = template
         self.next_handler = next_handler
+
     def __call__(self):
         env = globals().copy()
         env.update(self.next_handler())
 
         try:
-            rendered = self.template.render(**env)
+            #rendered = self.template.render(**env)
+            self.template.render(**env)
         except:
             traceback = RichTraceback()
             for (filename, lineno, function, line) in traceback.traceback:
                 print('File {} line #{} function {}'.format(
-                    filename, 
+                    filename,
                     lineno, function))
                 print('    {}'.format(line))
             raise
 
         return self.template.render(**env)
 
+
 class MakoLoader(object):
+
     def __init__(self):
         self.lookups = {}
+
     def __call__(
             self, filename, directories, module_directory=None,
             collection_size=-1):
@@ -53,21 +82,23 @@ class MakoLoader(object):
                 collection_size=collection_size)
             self.lookups[key] = lookup
         cherrypy.request.lookup = lookup
-        
+
         # Replace the current handler.
         cherrypy.request.template = t = lookup.get_template(filename)
         cherrypy.request.handler = MakoHandler(t, cherrypy.request.handler)
 
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
 
+
 class BibleMungingServer(object):
+
     def __init__(self):
         self.bible = biblemunger.Bible('./kjv.xml')
         self.favorite_searches = [
-            {'search':'hearts',        'replace':'feels'},
-            {'search':'servant',       'replace':'uber driver'},
-            {'search':'thy salvation', 'replace':'dat ass'},
-            {'search':'staff',         'replace':'dick'}]
+            {'search': 'hearts',        'replace': 'feels'},
+            {'search': 'servant',       'replace': 'uber driver'},
+            {'search': 'thy salvation', 'replace': 'dat ass'},
+            {'search': 'staff',         'replace': 'dick'}]
 
         conn = sqlite3.connect(dbname)
         c = conn.cursor()
@@ -95,7 +126,6 @@ class BibleMungingServer(object):
         for r in results:
             searches += [{'search': r[0], 'replace':r[1]}]
         return searches
-        
 
     def initialize_database(self):
         conn = sqlite3.connect(dbname)
@@ -110,7 +140,6 @@ class BibleMungingServer(object):
                 self.search_in_list(self.recent_searches, search, replace)):
             return
 
-
         conn = sqlite3.connect(dbname)
         c = conn.cursor()
         c.execute("insert into recent_searches values (?, ?)", (search, replace))
@@ -124,7 +153,7 @@ class BibleMungingServer(object):
         queried = False
         resultstitle = None
         results = None
-        
+
         if search and replace:
             #resultstitle = "{} &rArr; {}".format(search, replace)
             resultstitle = "{} ⇒ {}".format(search, replace)
@@ -146,26 +175,23 @@ class BibleMungingServer(object):
             'search':       search,
             'replace':      replace}
 
-def run():
-    global scriptdir
+
+def starthttp():
+    global cp_root_config
     cherrypy.config.update({
-        'server.socket_port': 8187, #BIBL
+        'server.socket_port': 8187,  #BIBL
         'server.socket_host': '127.0.0.1'})
-    fvicopath = "{}/static/favicon.ico".format(scriptdir)
-    cp_root_config = {
-        '/': {
-            'tools.mako.directories': templepath,
-            'tools.staticdir.root': scriptdir},
-        '/static' : {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': 'static'},
-        "/favicon.ico": {
-            "tools.staticfile.on": True,
-            "tools.staticfile.filename": fvicopath}
-    }
-        
     cherrypy.tree.mount(BibleMungingServer(), '/', cp_root_config)
     cherrypy.engine.start()
     cherrypy.engine.block()
 
 
+def startwsgi():
+    global cp_root_config
+    sys.stdout = sys.stderr
+    cherrypy.config.update({'environment': 'embedded'})
+    return cherrypy.Application(BibleMungingServer(), script_name=None, config=cp_root_config)
+
+
+if __name__ == '__main__':
+    application = startwsgi()
