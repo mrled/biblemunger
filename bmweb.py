@@ -3,9 +3,12 @@
 - To run using CherryPy's built-in webserver, run "biblemunger.py -w"
 """
 
+import sys
+sys.stdout = sys.stderr
+
+import datetime
 import os
 import sqlite3
-import sys
 
 import cherrypy
 #from mako.template import Template
@@ -13,14 +16,14 @@ from mako.exceptions import RichTraceback
 from mako.lookup import TemplateLookup
 
 # Necessary because of WSGI
-scriptroot = os.path.dirname(os.path.realpath(__file__))
-sys.path = [scriptroot] + sys.path
+scriptdir = os.path.dirname(os.path.realpath(__file__))
+sys.path = [scriptdir] + sys.path
 
 import biblemunger
 
 
-scriptdir = os.path.abspath(os.curdir)
 templepath = os.path.join(scriptdir, 'temple')
+logpath = os.path.join(scriptdir, 'log.txt')
 dbpath = os.path.join(scriptdir, 'bmweb.sqlite')
 faviconpath = os.path.join(scriptdir, 'static', 'favicon.ico')
 cp_root_config = {
@@ -39,6 +42,20 @@ cp_root_config = {
 def strace():
     import pdb
     pdb.set_trace()
+
+
+def log(text):
+    datestring = datetime.datetime.now().isoformat()
+    datedtext = "{} -- {}".format(datestring, text)
+    with open(logpath, 'a') as logfile:
+        print(datedtext, file=logfile)
+
+
+def log(text):
+    datestring = datetime.datetime.now().isoformat()
+    datedtext = "{} -- {}".format(datestring, text)
+    with open(logpath, 'a') as logfile:
+        print(datedtext, file=logfile)
 
 
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
@@ -198,6 +215,5 @@ class BibleMungingServer(object):
 #     cherrypy.engine.block()
 
 
-sys.stdout = sys.stderr
 cherrypy.config.update({'environment': 'embedded'})
 application = cherrypy.Application(BibleMungingServer(), script_name=None, config=cp_root_config)
