@@ -1,6 +1,6 @@
 # biblemunger - fuck with the holy scriptures
 
-Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toast.net/tag/bible-verses/)
+Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toast.net/series/bible-verses/)
 
 ## Requirements
 
