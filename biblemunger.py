@@ -85,6 +85,16 @@ class Bible(object):
         return munged
 
 
+def resolvepath(path, relativeto):
+    if os.path.isabs:
+        return path
+    elif not relativeto:
+        # Assume relative to CWD
+        return os.path.join(os.getcwd(), path)
+    else:
+        return os.path.join(relativeto, path)
+
+
 def configure():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -99,6 +109,11 @@ def configure():
     configuration.readfp(open(defaultconfig))
     if os.path.exists(userconfig):
         configuration.readfp(open(userconfig))
+
+    configuration['bmweb']['dbpath'] = resolvepath(
+        configuration['bmweb']['dbpath'], scriptdir)
+    configuration['biblemunger']['bible'] = resolvepath(
+        configuration['biblemunger']['bible'], scriptdir)
 
     return configuration
 

@@ -202,8 +202,7 @@ cp_root_config = {
             scriptdir, 'static', 'favicon.ico')}
 }
 
-bible = biblemunger.Bible(
-    os.path.join(scriptdir, configuration.get('biblemunger', 'bible')))
+bible = biblemunger.Bible(configuration.get('biblemunger', 'bible'))
 favdict = {}
 for key in configuration['favorites']:
     favdict[key] = configuration['favorites'][key]
