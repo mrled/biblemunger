@@ -1,4 +1,4 @@
-# biblemunger - fuck with the holy scriptures
+# biblemunger - provacative text-replacement in famous literature
 
 Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toast.net/series/bible-verses/)
 

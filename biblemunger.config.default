@@ -1,7 +1,7 @@
 [biblemunger]
 bible = kjv.xml
 apptitle = biblemunger
-appsubtitle = fuck with the holy scriptures
+appsubtitle = provacative text-replacement in famous literature
 
 [bmweb]
 server = 127.0.0.1
