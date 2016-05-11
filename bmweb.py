@@ -180,12 +180,12 @@ def run_cherrypy():
     cherrypy.engine.block()
 
 
-wsgi = False
-try:
-    if len(environ['wsgi.version']) > 0:
-        wsgi = True
-except NameError:
-    pass
+# wsgi = False
+# try:
+#     if len(environ['wsgi.version']) > 0:
+#         wsgi = True
+# except NameError:
+#     pass
 
 configuration = biblemunger.configure()
 
@@ -213,8 +213,13 @@ bmserver = BibleMungingServer(
     configuration.get('biblemunger', 'appsubtitle'),
     configuration.get('bmweb', 'dbpath'))
 
-if wsgi:
-    sys.stdout = sys.stderr
-    cherrypy.config.update({'environment': 'embedded'})
-    application = cherrypy.Application(
-        bmserver, script_name=None, config=cp_root_config)
+# if wsgi:
+#     sys.stdout = sys.stderr
+#     cherrypy.config.update({'environment': 'embedded'})
+#     application = cherrypy.Application(
+#         bmserver, script_name=None, config=cp_root_config)
+
+sys.stdout = sys.stderr
+cherrypy.config.update({'environment': 'embedded'})
+application = cherrypy.Application(
+    bmserver, script_name=None, config=cp_root_config)
