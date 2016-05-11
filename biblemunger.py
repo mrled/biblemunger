@@ -86,7 +86,7 @@ class Bible(object):
 
 
 def resolvepath(path, relativeto):
-    if os.path.isabs:
+    if os.path.isabs(path):
         return path
     elif not relativeto:
         # Assume relative to CWD
