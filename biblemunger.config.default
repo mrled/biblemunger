@@ -1,0 +1,18 @@
+[biblemunger]
+bible = kjv.xml
+apptitle = biblemunger
+appsubtitle = fuck with the holy scriptures
+
+[bmweb]
+server = 127.0.0.1
+
+#8187=BIBL
+port = 8187
+
+dbpath = bmweb.sqlite
+
+[favorites]
+hearts = feels
+servant = uber driver
+thy salvation = dat ass
+staff = dick

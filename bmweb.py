@@ -3,60 +3,22 @@
 - To run using CherryPy's built-in webserver, run "biblemunger.py -w"
 """
 
-import sys
-sys.stdout = sys.stderr
-
-import datetime
 import os
 import random
 import sqlite3
+import sys
+# from pdb import set_trace as strace
 
 import cherrypy
 #from mako.template import Template
 from mako.exceptions import RichTraceback
 from mako.lookup import TemplateLookup
 
-# Necessary because of WSGI
+# Necessary because of WSGI; must be done before importing biblemunger
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 sys.path = [scriptdir] + sys.path
 
 import biblemunger
-
-
-templepath = os.path.join(scriptdir, 'temple')
-logpath = os.path.join(scriptdir, 'log.txt')
-dbpath = os.path.join(scriptdir, 'bmweb.sqlite')
-faviconpath = os.path.join(scriptdir, 'static', 'favicon.ico')
-cp_root_config = {
-    '/': {
-        'tools.mako.directories': templepath,
-        'tools.staticdir.root': scriptdir},
-    '/static': {
-        'tools.staticdir.on': True,
-        'tools.staticdir.dir': 'static'},
-    "/favicon.ico": {
-        "tools.staticfile.on": True,
-        "tools.staticfile.filename": faviconpath}
-}
-
-
-def strace():
-    import pdb
-    pdb.set_trace()
-
-
-def log(text):
-    datestring = datetime.datetime.now().isoformat()
-    datedtext = "{} -- {}".format(datestring, text)
-    with open(logpath, 'a') as logfile:
-        print(datedtext, file=logfile)
-
-
-def log(text):
-    datestring = datetime.datetime.now().isoformat()
-    datedtext = "{} -- {}".format(datestring, text)
-    with open(logpath, 'a') as logfile:
-        print(datedtext, file=logfile)
 
 
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
@@ -110,22 +72,24 @@ class MakoLoader(object):
         cherrypy.request.template = t = lookup.get_template(filename)
         cherrypy.request.handler = MakoHandler(t, cherrypy.request.handler)
 
+
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
 
 
 class BibleMungingServer(object):
 
-    def __init__(self):
-        global dbpath
+    def __init__(self, bible, favdict, apptitle, appsubtitle, dbpath):
+        self.bible = bible
+        self.apptitle = apptitle
+        self.appsubtitle = appsubtitle
+        self.dbpath = dbpath
 
-        self.bible = biblemunger.Bible(biblemunger.kjvpath)
-        self.favorite_searches = [
-            {'search': 'hearts',        'replace': 'feels'},
-            {'search': 'servant',       'replace': 'uber driver'},
-            {'search': 'thy salvation', 'replace': 'dat ass'},
-            {'search': 'staff',         'replace': 'dick'}]
+        # TODO: refactor this, just use a dictionary directly elsewhere
+        self.favorite_searches = []
+        for key in favdict.keys():
+            self.favorite_searches += [{'search': key, 'replace': favdict[key]}]
 
-        conn = sqlite3.connect(dbpath)
+        conn = sqlite3.connect(self.dbpath)
         c = conn.cursor()
         c.execute(
             "select name from sqlite_master where type='table' and name='recent_searches'")
@@ -141,8 +105,7 @@ class BibleMungingServer(object):
 
     @property
     def recent_searches(self):
-        global dbpath
-        conn = sqlite3.connect(dbpath)
+        conn = sqlite3.connect(self.dbpath)
         c = conn.cursor()
         c.execute(
             "select search, replace from recent_searches")
@@ -154,22 +117,19 @@ class BibleMungingServer(object):
         return searches
 
     def initialize_database(self):
-        global dbpath
-        conn = sqlite3.connect(dbpath)
+        conn = sqlite3.connect(self.dbpath)
         c = conn.cursor()
         c.execute('''create table recent_searches (search, replace)''')
         conn.commit()
         conn.close()
 
     def add_recent_search(self, search, replace):
-        global dbpath
-
-        if (
-                self.search_in_list(self.favorite_searches, search, replace) or
-                self.search_in_list(self.recent_searches, search, replace)):
+        in_faves = self.search_in_list(self.favorite_searches, search, replace)
+        in_recent = self.search_in_list(self.recent_searches, search, replace)
+        if (in_faves or in_recent):
             return
 
-        conn = sqlite3.connect(dbpath)
+        conn = sqlite3.connect(self.dbpath)
         c = conn.cursor()
         c.execute("insert into recent_searches values (?, ?)", (search, replace))
         conn.commit()
@@ -178,7 +138,7 @@ class BibleMungingServer(object):
     @cherrypy.expose
     @cherrypy.tools.mako(filename='index.mako')
     def index(self, search=None, replace=None):
-        pagetitle = biblemunger.apptitle
+        pagetitle = self.apptitle
         queried = False
         resultstitle = None
         results = None
@@ -187,7 +147,7 @@ class BibleMungingServer(object):
         if search and replace:
             #resultstitle = "{} &rArr; {}".format(search, replace)
             resultstitle = "{} ⇒ {}".format(search, replace)
-            pagetitle = "{}: {}".format(biblemunger.apptitle, resultstitle)
+            pagetitle = "{}: {}".format(self.apptitle, resultstitle)
             queried = True
             results = self.bible.replace(search, replace)
             if results:
@@ -196,8 +156,8 @@ class BibleMungingServer(object):
 
         return {
             'pagetitle':    pagetitle,
-            'apptitle':     biblemunger.apptitle,
-            'appsubtitle':  biblemunger.appsubtitle,
+            'apptitle':     self.apptitle,
+            'appsubtitle':  self.appsubtitle,
             'queried':      queried,
             'resultstitle': resultstitle,
             'results':      results,
@@ -208,16 +168,53 @@ class BibleMungingServer(object):
             'replace':      replace}
 
 
-# TODO: make it so I can choose between starting in dev mode (with starthttp()) and starting in prod mode (by setting the module-level "application" variable)
-# def starthttp():
-#     global cp_root_config
-#     cherrypy.config.update({
-#         'server.socket_port': 8187,  #BIBL
-#         'server.socket_host': '127.0.0.1'})
-#     cherrypy.tree.mount(BibleMungingServer(), '/', cp_root_config)
-#     cherrypy.engine.start()
-#     cherrypy.engine.block()
+def run_cherrypy():
+    global configuration
+    global bmserver
+    global cp_root_config
+    cherrypy.config.update({
+        'server.socket_port': int(configuration.get('bmweb', 'port')),
+        'server.socket_host': configuration.get('bmweb', 'server')})
+    cherrypy.tree.mount(bmserver, '/', cp_root_config)
+    cherrypy.engine.start()
+    cherrypy.engine.block()
 
 
-cherrypy.config.update({'environment': 'embedded'})
-application = cherrypy.Application(BibleMungingServer(), script_name=None, config=cp_root_config)
+wsgi = False
+try:
+    if len(environ['wsgi.version']) > 0:
+        wsgi = True
+except NameError:
+    pass
+
+configuration = biblemunger.configure()
+
+cp_root_config = {
+    '/': {
+        'tools.mako.directories': os.path.join(scriptdir, 'temple'),
+        'tools.staticdir.root': scriptdir},
+    '/static': {
+        'tools.staticdir.on': True,
+        'tools.staticdir.dir': 'static'},
+    "/favicon.ico": {
+        "tools.staticfile.on": True,
+        "tools.staticfile.filename": os.path.join(
+            scriptdir, 'static', 'favicon.ico')}
+}
+
+bible = biblemunger.Bible(configuration.get('biblemunger', 'bible'))
+favdict = {}
+for key in configuration['favorites']:
+    favdict[key] = configuration['favorites'][key]
+bmserver = BibleMungingServer(
+    bible,
+    favdict,
+    configuration.get('biblemunger', 'apptitle'),
+    configuration.get('biblemunger', 'appsubtitle'),
+    configuration.get('bmweb', 'dbpath'))
+
+if wsgi:
+    sys.stdout = sys.stderr
+    cherrypy.config.update({'environment': 'embedded'})
+    application = cherrypy.Application(
+        bmserver, script_name=None, config=cp_root_config)

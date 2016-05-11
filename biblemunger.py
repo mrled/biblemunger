@@ -5,16 +5,8 @@ import os
 import re
 import sys
 import xml.etree.ElementTree as ET
-
-apptitle = "biblemunger"
-appsubtitle = "fuck with the holy scriptures"
-scriptroot = os.path.dirname(os.path.realpath(__file__))
-kjvpath = os.path.join(scriptroot, "kjv.xml")
-
-
-def strace():
-    from pdb import set_trace
-    set_trace()
+from configparser import ConfigParser
+#from pdb import set_trace as strace
 
 
 class BibleVerse(object):
@@ -93,8 +85,29 @@ class Bible(object):
         return munged
 
 
+def configure():
+    scriptdir = os.path.dirname(os.path.realpath(__file__))
+
+    # The first of these, the default config file, must exist (and is in git)
+    # The second is an optional config file that can be provided by the user
+    # NOTE: We want the config files to work even for WSGI, so we can't use a
+    #       command line parameter for the user's config
+    defaultconfig = os.path.join(scriptdir, 'biblemunger.config.default')
+    userconfig = os.path.join(scriptdir, 'biblemunger.config')
+
+    configuration = ConfigParser()
+    configuration.readfp(open(defaultconfig))
+    if os.path.exists(userconfig):
+        configuration.readfp(open(userconfig))
+
+    return configuration
+
+
 def main(*args, **kwargs):
-    global appsubtitle
+    configuration = configure()
+    appsubtitle = configuration.get('biblemunger', 'appsubtitle')
+    bible = Bible(configuration.get('biblemunger', 'bible'))
+
     parser = argparse.ArgumentParser(
         description=appsubtitle)
     actiong = parser.add_mutually_exclusive_group()
@@ -104,19 +117,14 @@ def main(*args, **kwargs):
     actiong.add_argument(
         '--replace', '-r', nargs=2, action='store',
         help='Replace one string with another')
-    # actiong.add_argument(
-    #     '--web', '-w', action='store', dest='webconfig', nargs='?',
-    #     help='Run a webserver, optionally specifying a config file')
     actiong.add_argument(
         '--web', '-w', action='store_true',
         help='Run a webserver')
 
-    bible = Bible(kjvpath)
-
     parsed = parser.parse_args()
     if parsed.web:
         import bmweb
-        bmweb.starthttp()
+        bmweb.run_cherrypy()
     elif parsed.search:
         for verse in bible.search(parsed.search):
             print(verse)
