@@ -3,6 +3,7 @@
 - To run using CherryPy's built-in webserver, run "biblemunger.py -w"
 """
 
+import configparser
 import os
 import random
 import sqlite3
@@ -13,10 +14,6 @@ import cherrypy
 #from mako.template import Template
 from mako.exceptions import RichTraceback
 from mako.lookup import TemplateLookup
-
-# Necessary because of WSGI; must be done before importing biblemunger
-scriptdir = os.path.dirname(os.path.realpath(__file__))
-sys.path = [scriptdir] + sys.path
 
 import biblemunger
 
@@ -78,7 +75,13 @@ cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
 
 class BibleMungingServer(object):
 
-    def __init__(self, bible, favdict, apptitle, appsubtitle, dbpath):
+    def __init__(
+            self,
+            bible: biblemunger.Bible,
+            favdict, #: list[dict],
+            apptitle: str,
+            appsubtitle: str,
+            dbpath: str):
         self.bible = bible
         self.apptitle = apptitle
         self.appsubtitle = appsubtitle
@@ -95,6 +98,15 @@ class BibleMungingServer(object):
             "select name from sqlite_master where type='table' and name='recent_searches'")
         if not c.fetchone():
             self.initialize_database()
+
+    @classmethod
+    def fromconfig(cls, configuration: configparser.ConfigParser):
+        return BibleMungingServer(
+            biblemunger.Bible(configuration.get('biblemunger', 'bible')),
+            configuration['favorites'],
+            configuration.get('biblemunger', 'apptitle'),
+            configuration.get('biblemunger', 'appsubtitle'),
+            configuration.get('bmweb', 'dbpath'))
 
     def search_in_list(self, searchlist, search, replace):
         for s in searchlist:
@@ -168,27 +180,23 @@ class BibleMungingServer(object):
             'replace':      replace}
 
 
-def run_cherrypy():
-    global configuration
-    global bmserver
+def run(configuration):
+    """
+    Run a BibleMungingServer from CherryPy's web engine
+    Useful in development; in production, you probably want to use bmweb.wsgi
+    """
     global cp_root_config
     cherrypy.config.update({
         'server.socket_port': int(configuration.get('bmweb', 'port')),
         'server.socket_host': configuration.get('bmweb', 'server')})
-    cherrypy.tree.mount(bmserver, '/', cp_root_config)
+    cherrypy.tree.mount(
+        BibleMungingServer.fromconfig(configuration), 
+        '/', cp_root_config)
     cherrypy.engine.start()
     cherrypy.engine.block()
 
 
-# wsgi = False
-# try:
-#     if len(environ['wsgi.version']) > 0:
-#         wsgi = True
-# except NameError:
-#     pass
-
-configuration = biblemunger.configure()
-
+scriptdir = os.path.dirname(os.path.realpath(__file__))
 cp_root_config = {
     '/': {
         'tools.mako.directories': os.path.join(scriptdir, 'temple'),
@@ -201,25 +209,3 @@ cp_root_config = {
         "tools.staticfile.filename": os.path.join(
             scriptdir, 'static', 'favicon.ico')}
 }
-
-bible = biblemunger.Bible(configuration.get('biblemunger', 'bible'))
-favdict = {}
-for key in configuration['favorites']:
-    favdict[key] = configuration['favorites'][key]
-bmserver = BibleMungingServer(
-    bible,
-    favdict,
-    configuration.get('biblemunger', 'apptitle'),
-    configuration.get('biblemunger', 'appsubtitle'),
-    configuration.get('bmweb', 'dbpath'))
-
-# if wsgi:
-#     sys.stdout = sys.stderr
-#     cherrypy.config.update({'environment': 'embedded'})
-#     application = cherrypy.Application(
-#         bmserver, script_name=None, config=cp_root_config)
-
-sys.stdout = sys.stderr
-cherrypy.config.update({'environment': 'embedded'})
-application = cherrypy.Application(
-    bmserver, script_name=None, config=cp_root_config)

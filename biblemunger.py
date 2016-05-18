@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
+import configparser
 import os
 import re
 import sys
 import xml.etree.ElementTree as ET
-from configparser import ConfigParser
 #from pdb import set_trace as strace
 
 
@@ -105,7 +105,7 @@ def configure():
     defaultconfig = os.path.join(scriptdir, 'biblemunger.config.default')
     userconfig = os.path.join(scriptdir, 'biblemunger.config')
 
-    configuration = ConfigParser()
+    configuration = configparser.ConfigParser()
     configuration.readfp(open(defaultconfig))
     if os.path.exists(userconfig):
         configuration.readfp(open(userconfig))
@@ -139,7 +139,7 @@ def main(*args, **kwargs):
     parsed = parser.parse_args()
     if parsed.web:
         import bmweb
-        bmweb.run_cherrypy()
+        bmweb.run(configuration)
     elif parsed.search:
         for verse in bible.search(parsed.search):
             print(verse)
