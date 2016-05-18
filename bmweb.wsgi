@@ -2,9 +2,14 @@
 WSGI entry point for BibleMunger web application
 """
 
+import os
+import sys
+
 # Necessary because of WSGI; must be done before importing biblemunger
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 sys.path = [scriptdir] + sys.path
+
+import cherrypy
 
 import bmweb
 import biblemunger
