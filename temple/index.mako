@@ -1,3 +1,8 @@
+<%!
+    import markupsafe
+    import random
+    import re
+%>
 <html>
 <head>
   <title>${pagetitle |h}</title>
@@ -5,10 +10,10 @@
   <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
   <meta name="og:title" content="${pagetitle |h}" />
   <link rel="image_src" href="./static/bible.png" />
-  %if sampleresult:
+  %if results:
     ## NOTE: Facebook will ignore any text that contains markup here :(
     ##       so we cannot embolden our munged terms :(:(
-    <meta property="og:description" content="${sampleresult |h}" />
+    <meta property="og:description" content="${str(results[random.randrange(len(results))]) |h}" />
   %else:
     <meta property="og:description" content="${appsubtitle |h}" />
   %endif
@@ -123,7 +128,6 @@
       %for verse in results:
         <tr><td><strong>${verse.book |h} ${verse.chapter |h}:${verse.verse |h}</strong></td>
         <%
-            import re, markupsafe
             escaped = markupsafe.escape(verse.text_markedup)
             slashspanned = re.sub('\*\*\*\*\*\*', '</span>', escaped)
             spanned = re.sub('\*\*\*\*\*', '<span class="munged">', slashspanned)
@@ -135,11 +139,12 @@
       <p>None</p>
     %endif
   </div>
-%endif     
+%endif
 
 <a href="https://github.com/mrled/biblemunger"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"></a>
 
 </div>
 
 </div></body>
+<!--BibleMunger version ${appversion |h}-->
 </html>

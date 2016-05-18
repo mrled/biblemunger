@@ -81,11 +81,13 @@ class BibleMungingServer(object):
             favdict, #: list[dict],
             apptitle: str,
             appsubtitle: str,
-            dbpath: str):
+            dbpath: str,
+            version: str):
         self.bible = bible
         self.apptitle = apptitle
         self.appsubtitle = appsubtitle
         self.dbpath = dbpath
+        self.version = version
 
         # TODO: refactor this, just use a dictionary directly elsewhere
         self.favorite_searches = []
@@ -106,7 +108,8 @@ class BibleMungingServer(object):
             configuration['favorites'],
             configuration.get('biblemunger', 'apptitle'),
             configuration.get('biblemunger', 'appsubtitle'),
-            configuration.get('bmweb', 'dbpath'))
+            configuration.get('bmweb', 'dbpath'),
+            configuration.get('calculatedinfo', 'version'))
 
     def search_in_list(self, searchlist, search, replace):
         for s in searchlist:
@@ -164,7 +167,6 @@ class BibleMungingServer(object):
             results = self.bible.replace(search, replace)
             if results:
                 self.add_recent_search(search, replace)
-                sampleresult = str(results[random.randrange(len(results))])
 
         return {
             'pagetitle':    pagetitle,
@@ -173,11 +175,11 @@ class BibleMungingServer(object):
             'queried':      queried,
             'resultstitle': resultstitle,
             'results':      results,
-            'sampleresult': sampleresult,
             'favorites':    self.favorite_searches,
             'recents':      self.recent_searches,
             'search':       search,
-            'replace':      replace}
+            'replace':      replace,
+            'appversion':   self.version}
 
 
 def run(configuration):
