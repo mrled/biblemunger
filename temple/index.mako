@@ -146,5 +146,5 @@
 </div>
 
 </div></body>
-<!--BibleMunger version ${appversion |h}-->
+<!--${deploymentinfo |h}-->
 </html>

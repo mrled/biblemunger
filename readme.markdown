@@ -48,12 +48,10 @@ Furthermore, this can solve the subdirectory problem:
 
 ## TODO
 
+- Use better version stamping system and/or something with the `__version__` attribute
 - Allow replacement of multiple things at once.
   (Would love to be able to replace "sons" and "daughters" at the same time, for example.)
-- Select the shortest verse for the `og:description` so you're most likely to see the whole thing when shared to FB etc
 - Should use a Mako page filter, rather than filtering on each expression
 - Should filter on input side, in bmweb.py, in addition to output side, in index.mako. 
 - Reverse the sorting of the recent searches
-- Fix the bug where recent searches appear more than once
 - More consistent layout would be nice, CSS is hard
-

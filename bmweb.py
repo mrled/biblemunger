@@ -81,13 +81,19 @@ class BibleMungingServer(object):
             favdict, #: list[dict],
             apptitle: str,
             appsubtitle: str,
-            dbpath: str,
-            version: str):
+            dbpath: str):
+
         self.bible = bible
         self.apptitle = apptitle
         self.appsubtitle = appsubtitle
         self.dbpath = dbpath
-        self.version = version
+
+        deploymentinfofile = os.path.join(scriptdir, 'deploymentinfo.txt')
+        if os.path.exists(deploymentinfofile):
+            with open(deploymentinfofile) as df:
+                self.deploymentinfo = df.read()
+        else:
+            self.deploymentinfo = "development version"
 
         # TODO: refactor this, just use a dictionary directly elsewhere
         self.favorite_searches = []
@@ -108,8 +114,7 @@ class BibleMungingServer(object):
             configuration['favorites'],
             configuration.get('biblemunger', 'apptitle'),
             configuration.get('biblemunger', 'appsubtitle'),
-            configuration.get('bmweb', 'dbpath'),
-            configuration.get('calculatedinfo', 'version'))
+            configuration.get('bmweb', 'dbpath'))
 
     def search_in_list(self, searchlist, search, replace):
         for s in searchlist:
@@ -169,17 +174,17 @@ class BibleMungingServer(object):
                 self.add_recent_search(search, replace)
 
         return {
-            'pagetitle':    pagetitle,
-            'apptitle':     self.apptitle,
-            'appsubtitle':  self.appsubtitle,
-            'queried':      queried,
-            'resultstitle': resultstitle,
-            'results':      results,
-            'favorites':    self.favorite_searches,
-            'recents':      self.recent_searches,
-            'search':       search,
-            'replace':      replace,
-            'appversion':   self.version}
+            'pagetitle':      pagetitle,
+            'apptitle':       self.apptitle,
+            'appsubtitle':    self.appsubtitle,
+            'queried':        queried,
+            'resultstitle':   resultstitle,
+            'results':        results,
+            'favorites':      self.favorite_searches,
+            'recents':        self.recent_searches,
+            'search':         search,
+            'replace':        replace,
+            'deploymentinfo': self.deploymentinfo}
 
 
 def run(configuration):

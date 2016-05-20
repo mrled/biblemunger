@@ -115,17 +115,6 @@ def configure():
     configuration['biblemunger']['bible'] = resolvepath(
         configuration['biblemunger']['bible'], scriptdir)
 
-    calculatedinfo = {}
-
-    versionfile = os.path.join(scriptdir, 'version.txt')
-    if os.path.exists(versionfile):
-        with open(versionfile) as vf:
-            calculatedinfo['version'] = vf.read()
-    else:
-        calculatedinfo['version'] = '0.0.0'
-
-    configuration.read_dict({'calculatedinfo': calculatedinfo})
-
     return configuration
 
 
