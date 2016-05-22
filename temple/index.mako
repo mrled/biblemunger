@@ -88,6 +88,9 @@
   </div>
   <div id="searchRecents">    
     <script>toggleHideId('searchRecents')</script> 
+    %if filterinuse:
+      <p>(Note that there is a rather aggressive <a href="https://github.com/dariusk/wordfilter">word filter</a> in place. It's designed to prevent racist bullshit from polluting this list, but it sometimes triggers on innocuous replacement words. If you are replacing something and don't see it appear here, you may have tripped over this edge case.)</p>
+    %endif
     %if recents:
       <p>Here are some recent searches by users:</p>
       <ul class="noBullets"> 

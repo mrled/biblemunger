@@ -11,6 +11,8 @@ port = 8187
 
 dbpath = bmweb.sqlite
 
+wordfilter = true
+
 [favorites]
 hearts = feels
 servant = uber driver

@@ -78,15 +78,22 @@ class BibleMungingServer(object):
     def __init__(
             self,
             bible: biblemunger.Bible,
-            favdict, #: list[dict],
+            favdict,  #: list[dict],
             apptitle: str,
             appsubtitle: str,
-            dbpath: str):
+            dbpath: str,
+            wordfilter: bool):
 
         self.bible = bible
         self.apptitle = apptitle
         self.appsubtitle = appsubtitle
         self.dbpath = dbpath
+
+        if wordfilter:
+            from wordfilter import Wordfilter
+            self.wordfilter = Wordfilter()
+        else:
+            self.wordfilter = False
 
         deploymentinfofile = os.path.join(scriptdir, 'deploymentinfo.txt')
         if os.path.exists(deploymentinfofile):
@@ -114,7 +121,8 @@ class BibleMungingServer(object):
             configuration['favorites'],
             configuration.get('biblemunger', 'apptitle'),
             configuration.get('biblemunger', 'appsubtitle'),
-            configuration.get('bmweb', 'dbpath'))
+            configuration.get('bmweb', 'dbpath'),
+            configuration.getboolean('bmweb', 'wordfilter'))
 
     def search_in_list(self, searchlist, search, replace):
         for s in searchlist:
@@ -146,7 +154,13 @@ class BibleMungingServer(object):
     def add_recent_search(self, search, replace):
         in_faves = self.search_in_list(self.favorite_searches, search, replace)
         in_recent = self.search_in_list(self.recent_searches, search, replace)
-        if (in_faves or in_recent):
+
+        if self.wordfilter:
+            filtered = self.wordfilter.blacklisted(replace)
+        else:
+            filtered = False
+
+        if (in_faves or in_recent or filtered):
             return
 
         conn = sqlite3.connect(self.dbpath)
@@ -184,7 +198,8 @@ class BibleMungingServer(object):
             'recents':        self.recent_searches,
             'search':         search,
             'replace':        replace,
-            'deploymentinfo': self.deploymentinfo}
+            'deploymentinfo': self.deploymentinfo,
+            'filterinuse':    bool(self.wordfilter)}
 
 
 def run(configuration):
