@@ -92,6 +92,7 @@ class BibleMungingServer(object):
         if wordfilter:
             from wordfilter import Wordfilter
             self.wordfilter = Wordfilter()
+            self.wordfilter.add_words(['QwertyStringUsedForTestingZxcvb'])
         else:
             self.wordfilter = False
 
