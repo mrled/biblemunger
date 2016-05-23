@@ -4,14 +4,15 @@ Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toas
 
 ## Requirements
 
-- For the CLI, only Python3 is required.
-- For the web server, the mako and cherrypy modules must be installed. 
-  - Note that CherryPy for Python 3 in Ubuntu 14.04 LTS is version
-    `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a
-    few seconds after it's started with an error like
-    `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not
-    bound on '127.0.0.1'",)`, even if the port open. Not sure if this
-    applies to vanilla CherryPy 3.2.2.
+ -  For the CLI, only Python3 is required.
+ -  For the web server, the mako and cherrypy modules must be installed.
+     -  You can install them from `pip`, if `pip3 install Mako CherryPy`
+     -  Note that CherryPy for Python 3 in Ubuntu 14.04 LTS is version
+        `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a
+        few seconds after it's started with an error like
+        `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not
+        bound on '127.0.0.1'",)`, even if the port open. Not sure if this
+        applies to vanilla CherryPy 3.2.2.
 
 ## CLI
 
@@ -48,10 +49,14 @@ Furthermore, this can solve the subdirectory problem:
 
 ## TODO
 
+- Consider refactoring search/replace lists to be simple dictionaries?
 - Use better version stamping system and/or something with the `__version__` attribute
 - Allow replacement of multiple things at once.
   (Would love to be able to replace "sons" and "daughters" at the same time, for example.)
+- Handle case, punctuation, whitespace more intuitively
 - Should use a Mako page filter, rather than filtering on each expression
 - Should filter on input side, in bmweb.py, in addition to output side, in index.mako. 
 - Reverse the sorting of the recent searches
 - More consistent layout would be nice, CSS is hard
+- Paginate recent searches, or find another way to deal with potentially hundreds
+- Show most searched
