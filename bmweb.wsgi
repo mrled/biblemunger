@@ -5,13 +5,11 @@ WSGI entry point for BibleMunger web application
 import os
 import sys
 
+import cherrypy
+
 # Necessary because of WSGI; must be done before importing biblemunger
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 sys.path = [scriptdir] + sys.path
-
-import cherrypy
-
-import bmweb
 import biblemunger
 
 
@@ -21,6 +19,6 @@ sys.stdout = sys.stderr
 cherrypy.config.update({'environment': 'embedded'})
 configuration = biblemunger.configure()
 application = cherrypy.Application(
-    bmweb.BibleMungingServer.fromconfig(configuration),
+    biblemunger.BibleMungingServer.fromconfig(configuration),
     script_name=None,
-    config=bmweb.cp_root_config)
+    config=biblemunger.cp_root_config)

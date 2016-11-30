@@ -5,9 +5,7 @@
 
 import configparser
 import os
-import random
 import sqlite3
-import sys
 # from pdb import set_trace as strace
 
 import cherrypy
@@ -18,8 +16,10 @@ from mako.lookup import TemplateLookup
 import biblemunger
 
 
-class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
+scriptdir = os.path.dirname(os.path.realpath(__file__))
 
+
+class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
     """Callable which sets response.body."""
 
     def __init__(self, template, next_handler):
@@ -29,19 +29,14 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
     def __call__(self):
         env = globals().copy()
         env.update(self.next_handler())
-
         try:
-            #rendered = self.template.render(**env)
             self.template.render(**env)
         except:
             traceback = RichTraceback()
             for (filename, lineno, function, line) in traceback.traceback:
-                print('File {} line #{} function {}'.format(
-                    filename,
-                    lineno, function))
-                print('    {}'.format(line))
+                print('File {} line #{} function {}\n    {}'.format(
+                    filename, lineno, function, line))
             raise
-
         return self.template.render(**env)
 
 
@@ -75,14 +70,7 @@ cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
 
 class BibleMungingServer(object):
 
-    def __init__(
-            self,
-            bible: biblemunger.Bible,
-            favdict,  #: list[dict],
-            apptitle: str,
-            appsubtitle: str,
-            dbpath: str,
-            wordfilter: bool):
+    def __init__(self, bible, favdict, apptitle, appsubtitle, dbpath, wordfilter):
 
         self.bible = bible
         self.apptitle = apptitle
@@ -136,14 +124,10 @@ class BibleMungingServer(object):
     def recent_searches(self):
         conn = sqlite3.connect(self.dbpath)
         c = conn.cursor()
-        c.execute(
-            "select search, replace from recent_searches")
+        c.execute("select search, replace from recent_searches")
         results = c.fetchall()
         conn.close()
-        searches = []
-        for r in results:
-            searches += [{'search': r[0], 'replace':r[1]}]
-        return searches
+        return ({'search': result[0], 'replace': result[1]} for result in results)
 
     def initialize_database(self):
         conn = sqlite3.connect(self.dbpath)
@@ -153,15 +137,10 @@ class BibleMungingServer(object):
         conn.close()
 
     def add_recent_search(self, search, replace):
-        in_faves = self.search_in_list(self.favorite_searches, search, replace)
-        in_recent = self.search_in_list(self.recent_searches, search, replace)
-
-        if self.wordfilter:
-            filtered = self.wordfilter.blacklisted(replace)
-        else:
-            filtered = False
-
-        if (in_faves or in_recent or filtered):
+        fave = self.search_in_list(self.favorite_searches, search, replace)
+        recent = self.search_in_list(self.recent_searches, search, replace)
+        filtered = self.wordfilter and self.wordfilter.blacklisted(replace)
+        if (fave or recent or filtered):
             return
 
         conn = sqlite3.connect(self.dbpath)
@@ -177,7 +156,6 @@ class BibleMungingServer(object):
         queried = False
         resultstitle = None
         results = None
-        sampleresult = None
 
         if search and replace:
             #resultstitle = "{} &rArr; {}".format(search, replace)
@@ -213,13 +191,12 @@ def run(configuration):
         'server.socket_port': int(configuration.get('bmweb', 'port')),
         'server.socket_host': configuration.get('bmweb', 'server')})
     cherrypy.tree.mount(
-        BibleMungingServer.fromconfig(configuration), 
+        BibleMungingServer.fromconfig(configuration),
         '/', cp_root_config)
     cherrypy.engine.start()
     cherrypy.engine.block()
 
 
-scriptdir = os.path.dirname(os.path.realpath(__file__))
 cp_root_config = {
     '/': {
         'tools.mako.directories': os.path.join(scriptdir, 'temple'),
