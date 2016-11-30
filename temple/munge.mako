@@ -82,7 +82,7 @@
       <ul class="noBullets"> 
         %for fav in favorites:
           <% s = fav['search']; r = fav['replace'] %>
-          <li><a href="./?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
+          <li><a href="./munge?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
         %endfor
       </ul>
     %else:
@@ -99,7 +99,7 @@
             ##    <% break %> 
             ##%endif
             <% s = rec['search']; r = rec['replace'] %>
-            <li><a href="./?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
+            <li><a href="./munge?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
         %endfor
       </ul></p>
     %else:
@@ -110,7 +110,7 @@
 
 <div id="searchSubsection">
 <h2>Search and <span class="strikeThru">destroy</span> replace</h2>
-<form id="mungerForm" method=GET action="./">
+<form id="mungerForm" method=GET action="./munge">
   <span class="labelAndBox" id="searchBox">Search:
     <input type=text name="search" size=20 autofocus="true" autocapitalize="off"
       value="${search if search else '' |h}" /></span>

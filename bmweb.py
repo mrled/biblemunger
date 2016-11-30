@@ -4,6 +4,7 @@
 """
 
 import configparser
+import json
 import os
 import sqlite3
 # from pdb import set_trace as strace
@@ -68,11 +69,30 @@ class MakoLoader(object):
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
 
 
+class DictEncoder(json.JSONEncoder):
+    """JSON encoder for any object that can be encoded just by getting to its underlying .__dict__ attribute"""
+
+    def default(self, obj):
+        return obj.__dict__
+
+    def iterencode(self, value):
+        # Adapted from cherrypy/_cpcompat.py
+        for chunk in super().iterencode(value):
+            yield chunk.encode("utf-8")
+
+    def json_handler(self, *args, **kwargs):
+        # Adapted from cherrypy/lib/jsontools.py
+        value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
+        return self.iterencode(value)
+
+
 class BibleMungingServer(object):
+
+    dictencoder = DictEncoder()
 
     def __init__(self, bible, favdict, apptitle, appsubtitle, dbpath, wordfilter):
 
-        self.bible = bible
+        self._bible = bible
         self.apptitle = apptitle
         self.appsubtitle = appsubtitle
         self.dbpath = dbpath
@@ -150,8 +170,20 @@ class BibleMungingServer(object):
         conn.close()
 
     @cherrypy.expose
-    @cherrypy.tools.mako(filename='index.mako')
-    def index(self, search=None, replace=None):
+    def index(self):
+        raise cherrypy.HTTPRedirect("munge")
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out(handler=dictencoder.json_handler)
+    def bible(self, search=None):
+        if search:
+            return self._bible.search(search)
+        else:
+            raise cherrypy.HTTPError(400, "No search terms")
+
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename='munge.mako')
+    def munge(self, search=None, replace=None):
         pagetitle = self.apptitle
         queried = False
         resultstitle = None
@@ -162,7 +194,7 @@ class BibleMungingServer(object):
             resultstitle = "{} ⇒ {}".format(search, replace)
             pagetitle = "{}: {}".format(self.apptitle, resultstitle)
             queried = True
-            results = self.bible.replace(search, replace)
+            results = self._bible.replace(search, replace)
             if results:
                 self.add_recent_search(search, replace)
 

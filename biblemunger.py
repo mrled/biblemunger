@@ -45,7 +45,11 @@ class Bible(object):
                     self.verses += [BibleVerse(verse.text, verse.get('vnumber'), chapter.get('cnumber'), book.get('bname'))]
 
     def search(self, string):
-        return (verse for verse in self.verses if re.search(string, verse.text))
+        verses = []
+        for verse in self.verses:
+            if re.search(string, verse.text):
+                verses += [verse]
+        return verses
 
     def replace(self, old, new):
         munged = []
