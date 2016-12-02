@@ -67,7 +67,6 @@ A random list that should probably be pruned:
 
 - Create text API
     - Bible converted to rows of SQL in database w/ columns: textId (e.g. KJV), bookId (e.g. Genesis), chapterId (e.g. 1), verseId (e.g. 1), data (e.g. "In the beginning...")
-    - Write an API endpoint for searching these using literal strings (not regex) and returning verses using JSON or something similar
 - Do text replacement in JavaScript
     - Obviates the command line tool, but I think that's ok
 - Have the UI also talk to the database

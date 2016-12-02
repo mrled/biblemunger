@@ -1,12 +1,8 @@
-"""
-- To run as WSGI, run this file (bmweb) directly
-- To run using CherryPy's built-in webserver, run "biblemunger.py -w"
-"""
-
 import configparser
 import json
 import os
 import sqlite3
+import sys
 # from pdb import set_trace as strace
 
 import cherrypy
@@ -14,10 +10,34 @@ import cherrypy
 from mako.exceptions import RichTraceback
 from mako.lookup import TemplateLookup
 
-import biblemunger
-
-
+# Necessary because of WSGI; must be done before importing any modules in this directory
 scriptdir = os.path.dirname(os.path.realpath(__file__))
+sys.path = [scriptdir] + sys.path
+import bible
+
+
+def configure():
+    global scriptdir
+
+    # The first of these, the default config file, must exist (and is in git)
+    # The second is an optional config file that can be provided by the user
+    # NOTE: We want the config files to work even for WSGI, so we can't use a
+    #       command line parameter for the user's config
+    defaultconfig = os.path.join(scriptdir, 'biblemunger.config.default')
+    userconfig = os.path.join(scriptdir, 'biblemunger.config')
+
+    configuration = configparser.ConfigParser()
+    configuration.readfp(open(defaultconfig))
+    if os.path.exists(userconfig):
+        configuration.readfp(open(userconfig))
+
+    def resolveconfigpath(path):
+        return path if os.path.isabs(path) else os.path.join(scriptdir, path)
+
+    configuration['biblemunger']['dbpath'] = resolveconfigpath(configuration['biblemunger']['dbpath'])
+    configuration['biblemunger']['bible'] = resolveconfigpath(configuration['biblemunger']['bible'])
+
+    return configuration
 
 
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
@@ -126,12 +146,12 @@ class BibleMungingServer(object):
     @classmethod
     def fromconfig(cls, configuration: configparser.ConfigParser):
         return BibleMungingServer(
-            biblemunger.Bible(configuration.get('biblemunger', 'bible')),
+            bible.Bible(configuration.get('biblemunger', 'bible')),
             configuration['favorites'],
             configuration.get('biblemunger', 'apptitle'),
             configuration.get('biblemunger', 'appsubtitle'),
-            configuration.get('bmweb', 'dbpath'),
-            configuration.getboolean('bmweb', 'wordfilter'))
+            configuration.get('biblemunger', 'dbpath'),
+            configuration.getboolean('biblemunger', 'wordfilter'))
 
     def search_in_list(self, searchlist, search, replace):
         for s in searchlist:
@@ -213,22 +233,6 @@ class BibleMungingServer(object):
             'filterinuse':    bool(self.wordfilter)}
 
 
-def run(configuration):
-    """
-    Run a BibleMungingServer from CherryPy's web engine
-    Useful in development; in production, you probably want to use bmweb.wsgi
-    """
-    global cp_root_config
-    cherrypy.config.update({
-        'server.socket_port': int(configuration.get('bmweb', 'port')),
-        'server.socket_host': configuration.get('bmweb', 'server')})
-    cherrypy.tree.mount(
-        BibleMungingServer.fromconfig(configuration),
-        '/', cp_root_config)
-    cherrypy.engine.start()
-    cherrypy.engine.block()
-
-
 cp_root_config = {
     '/': {
         'tools.mako.directories': os.path.join(scriptdir, 'temple'),
@@ -241,3 +245,39 @@ cp_root_config = {
         "tools.staticfile.filename": os.path.join(
             scriptdir, 'static', 'favicon.ico')}
 }
+
+
+configuration = configure()
+
+
+def devwebserver():
+    """Run using CherryPy's built in webserver.
+
+    This built in webserver is recommended for development purposes.
+    WSGI support (see below) is recommended for production.
+    """
+    global cp_root_config
+    cherrypy.config.update({
+        'server.socket_port': int(configuration.get('biblemunger', 'port')),
+        'server.socket_host': configuration.get('biblemunger', 'server')})
+    cherrypy.tree.mount(
+        BibleMungingServer.fromconfig(configuration),
+        '/',
+        cp_root_config)
+    cherrypy.engine.start()
+    cherrypy.engine.block()
+
+
+# When being run directly, assume that we should use CherryPy's built in webserver
+if __name__ == '__main__':
+    devwebserver()
+
+# Run via WSGI (the recommendation in Production)
+elif __name__.startswith('_mod_wsgi_'):
+    sys.stdout = sys.stderr  # Useful for logging WSGI applications
+    cherrypy.config.update({'environment': 'embedded'})
+    configuration = configure()
+    application = cherrypy.Application(
+        BibleMungingServer.fromconfig(configuration),
+        script_name=None,
+        config=cp_root_config)
