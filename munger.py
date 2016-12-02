@@ -233,51 +233,43 @@ class BibleMungingServer(object):
             'filterinuse':    bool(self.wordfilter)}
 
 
-cp_root_config = {
-    '/': {
-        'tools.mako.directories': os.path.join(scriptdir, 'temple'),
-        'tools.staticdir.root': scriptdir},
-    '/static': {
-        'tools.staticdir.on': True,
-        'tools.staticdir.dir': 'static'},
-    "/favicon.ico": {
-        "tools.staticfile.on": True,
-        "tools.staticfile.filename": os.path.join(
-            scriptdir, 'static', 'favicon.ico')}
-}
+def application(environ=None, start_response=None):
+    """Webserver setup code
 
+    If 'environ' and 'start_response' parameters are passed, assume WSGI.
 
-configuration = configure()
-
-
-def devwebserver():
-    """Run using CherryPy's built in webserver.
-
-    This built in webserver is recommended for development purposes.
-    WSGI support (see below) is recommended for production.
+    Otherwise, start cherrypy's built-in webserver.
     """
-    global cp_root_config
-    cherrypy.config.update({
-        'server.socket_port': int(configuration.get('biblemunger', 'port')),
-        'server.socket_host': configuration.get('biblemunger', 'server')})
-    cherrypy.tree.mount(
-        BibleMungingServer.fromconfig(configuration),
-        '/',
-        cp_root_config)
-    cherrypy.engine.start()
-    cherrypy.engine.block()
 
+    mode = 'wsgi' if environ and start_response else 'cherrypy'
 
-# When being run directly, assume that we should use CherryPy's built in webserver
-if __name__ == '__main__':
-    devwebserver()
-
-# Run via WSGI (the recommendation in Production)
-elif __name__.startswith('_mod_wsgi_'):
-    sys.stdout = sys.stderr  # Useful for logging WSGI applications
-    cherrypy.config.update({'environment': 'embedded'})
     configuration = configure()
-    application = cherrypy.Application(
-        BibleMungingServer.fromconfig(configuration),
-        script_name=None,
-        config=cp_root_config)
+    cpconfig = {
+        '/': {
+            'tools.mako.directories': os.path.join(scriptdir, 'temple'),
+            'tools.staticdir.root': scriptdir},
+        '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': 'static'},
+        "/favicon.ico": {
+            "tools.staticfile.on": True,
+            "tools.staticfile.filename": os.path.join(
+                scriptdir, 'static', 'favicon.ico')}
+    }
+
+    if mode == 'wsgi':
+        sys.stdout = sys.stderr
+        cherrypy.config.update({'environment': 'embedded'})
+    elif mode == 'cherrypy':
+        cherrypy.config.update({
+            'server.socket_port': int(configuration.get('biblemunger', 'port')),
+            'server.socket_host': configuration.get('biblemunger', 'server')})
+
+    cherrypy.tree.mount(
+        BibleMungingServer.fromconfig(configuration), '', cpconfig)
+
+    if mode == 'wsgi':
+        return cherrypy.tree(environ, start_response)
+    elif mode == 'cherrypy':
+        cherrypy.engine.start()
+        cherrypy.engine.block()

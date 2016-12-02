@@ -4,5 +4,4 @@ import sys
 
 import munger
 
-print("HIII")
-sys.exit(munger.devwebserver())
+sys.exit(munger.application())
