@@ -131,7 +131,7 @@
       %for verse in results:
         <tr><td><strong>${verse.book |h} ${verse.chapter |h}:${verse.verse |h}</strong></td>
         <%
-            escaped = markupsafe.escape(verse.text_markedup)
+            escaped = markupsafe.escape(verse.markedup)
             slashspanned = re.sub('\*\*\*\*\*\*', '</span>', escaped)
             spanned = re.sub('\*\*\*\*\*', '<span class="munged">', slashspanned)
         %>

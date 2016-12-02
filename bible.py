@@ -4,14 +4,9 @@ import xml.etree.ElementTree as ET
 
 class BibleVerse(object):
 
-    def __init__(self, text, verse, chapter, book):
-        # TODO: refactor so we don't pass a tuple here, that's confusing
-        if type(text) is tuple:
-            self.text = text[0]
-            self.text_markedup = text[1]
-        else:
-            self.text = text
-            self.text_markedup = text
+    def __init__(self, text, verse, chapter, book, markedup=None):
+        self.text = text
+        self.markedup = markedup if markedup else text
         self.verse = verse
         self.chapter = chapter
         self.book = book
@@ -22,17 +17,20 @@ class BibleVerse(object):
 
 class Bible(object):
 
-    def __init__(self, file):
-        self.xmletree = ET.parse(file)
+    def __init__(self, verses):
+        self.verses = verses
 
-        def findelems(base, tag):
-            return (child for child in base if child.tag == tag)
-
-        self.verses = []
-        for book in findelems(self.xmletree.getroot(), 'BIBLEBOOK'):
+    @classmethod
+    def fromxml(cls, file):
+        def findelems(base, tagname):
+            return (child for child in base if child.tag == tagname)
+        xmletree = ET.parse(file)
+        verses = []
+        for book in findelems(xmletree.getroot(), 'BIBLEBOOK'):
             for chapter in findelems(book, 'CHAPTER'):
                 for verse in findelems(chapter, 'VERS'):
-                    self.verses += [BibleVerse(verse.text, verse.get('vnumber'), chapter.get('cnumber'), book.get('bname'))]
+                    verses += [BibleVerse(verse.text, verse.get('vnumber'), chapter.get('cnumber'), book.get('bname'))]
+        return Bible(verses)
 
     def search(self, string):
         verses = []
@@ -47,7 +45,5 @@ class Bible(object):
             f = re.IGNORECASE
             plaintext = re.sub(old, new, verse.text, flags=f)
             markedtext = re.sub(old, '*****{}******'.format(new), verse.text, flags=f)
-            munged += [BibleVerse(
-                (plaintext, markedtext),
-                verse.verse, verse.chapter, verse.book)]
+            munged += [BibleVerse(plaintext, verse.verse, verse.chapter, verse.book, markedup=markedtext)]
         return munged

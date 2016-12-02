@@ -146,7 +146,7 @@ class BibleMungingServer(object):
     @classmethod
     def fromconfig(cls, configuration: configparser.ConfigParser):
         return BibleMungingServer(
-            bible.Bible(configuration.get('biblemunger', 'bible')),
+            bible.Bible.fromxml(configuration.get('biblemunger', 'bible')),
             configuration['favorites'],
             configuration.get('biblemunger', 'apptitle'),
             configuration.get('biblemunger', 'appsubtitle'),
