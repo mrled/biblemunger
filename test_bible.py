@@ -2,9 +2,8 @@
 
 # Run unit tests with "python -m unittest discover"
 
-import datetime
 import io
-import json
+import sqlite3
 import unittest
 
 import bible
@@ -69,3 +68,32 @@ class BibleTestCase(unittest.TestCase):
         expected_len_results_god = 10
         if len(results_God) != expected_len_results_god:
             raise Exception("Expected to see {} results but instead got {}".format(expected_len_results_god, len(results_god)))
+
+    def test_bible_persistdb(self):
+        bibletable = 'testkjv'
+        bib = bible.Bible.fromxml(io.StringIO(biblefragment))
+        dbconn = sqlite3.connect(':memory:')
+        bib.persistdb(dbconn, bibletable)
+        curse = dbconn.cursor()
+        curse.execute("SELECT * FROM {}".format(bibletable))
+        records = curse.fetchall()
+        curse.close()
+        dbconn.close()
+
+        expected_len_records = 10
+        expverse = bible.BibleVerse('Genesis', '1', '1', 'In the beginning God created the heaven and the earth.')
+        if len(records) != expected_len_records:
+            raise Exception("Expected to see {} recoreds but instead got {}".format(len(records), expected_len_records))
+        verse = bible.BibleVerse.fromtuple(records[0])
+
+        # TODO: implement comparison operators for BibleVerse objects so that this can be just one test like "if verse != expverse"
+        if verse.text != expverse.text:
+            raise Exception("Expected the text of the first record to be '{}' but was '{}' instead".format(expverse.text, verse.text))
+        if verse.book != expverse.book:
+            raise Exception("Expected the book of the first record to be '{}' but was '{}' instead".format(expverse.book, verse.book))
+        if verse.chapter != expverse.chapter:
+            raise Exception("Expected the chapter of the first record to be '{}' but was '{}' instead".format(expverse.chapter, verse.chapter))
+        if verse.verse != expverse.verse:
+            raise Exception("Expected the verse of the first record to be '{}' but was '{}' instead".format(expverse.verse, verse.verse))
+
+    # TODO: test .fromdb

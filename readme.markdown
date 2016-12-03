@@ -80,6 +80,9 @@ A random list that should probably be pruned:
 
 Things that can be done at any time
 
+- Tests
+    - Calculate test coverage
+    - Write tests until I hit 100% coverage
 - Handle results page
     - I don't like pagination, but that is a naive solution to the current problem of very large pages if you try to text-replace on "the"
 - Add a reading mode to the app
