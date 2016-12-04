@@ -15,6 +15,16 @@ class BibleVerse(object):
     def fromtuple(cls, tup):
         return BibleVerse(tup[0], tup[1], tup[2], tup[3])
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        return NotImplemented
+
+    def __ne__(self, other):
+        if isinstance(other, self.__class__):
+            return not self == other
+        return NotImplemented
+
     def __str__(self):
         return "{} {}:{}: {}".format(self.book, self.chapter, self.verse, self.text)
 
@@ -39,7 +49,7 @@ class Bible(object):
     @classmethod
     def fromdb(cls, dbconn, tablename):
         curse = dbconn.cursor()
-        curse.execute("SELECT (book, chapter, verse, text) FROM {}".format(tablename))
+        curse.execute("SELECT book, chapter, verse, text FROM {}".format(tablename))
         rows = curse.fetchall()
         verses = []
         for row in rows:

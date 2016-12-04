@@ -86,14 +86,24 @@ class BibleTestCase(unittest.TestCase):
             raise Exception("Expected to see {} recoreds but instead got {}".format(len(records), expected_len_records))
         verse = bible.BibleVerse.fromtuple(records[0])
 
-        # TODO: implement comparison operators for BibleVerse objects so that this can be just one test like "if verse != expverse"
-        if verse.text != expverse.text:
-            raise Exception("Expected the text of the first record to be '{}' but was '{}' instead".format(expverse.text, verse.text))
-        if verse.book != expverse.book:
-            raise Exception("Expected the book of the first record to be '{}' but was '{}' instead".format(expverse.book, verse.book))
-        if verse.chapter != expverse.chapter:
-            raise Exception("Expected the chapter of the first record to be '{}' but was '{}' instead".format(expverse.chapter, verse.chapter))
-        if verse.verse != expverse.verse:
-            raise Exception("Expected the verse of the first record to be '{}' but was '{}' instead".format(expverse.verse, verse.verse))
+        if verse != expverse:
+            raise Exception("Expected the first record to expand to verse '{}' but was '{}' instead".format(expverse, verse))
 
-    # TODO: test .fromdb
+    def test_bible_fromdb(self):
+        bibletable = 'testkjv'
+        dbconn = sqlite3.connect(':memory:')
+        curse = dbconn.cursor()
+        curse.execute("CREATE TABLE {} (book, chapter, verse, text)".format(bibletable))
+        dbconn.commit()
+        verses = [
+            bible.BibleVerse('YellowBook', 11, 11, 'YellowBook 11:11 Verse Text'),
+            bible.BibleVerse('OrangeBook', 12, 18, 'OrangeBook 12:18 Verse Text'),
+            bible.BibleVerse('PurpleBook', 22, 47, 'PurpleBook 22:47 Verse Text')]
+        for verse in verses:
+            curse.execute("INSERT INTO {} values (?, ?, ?, ?)".format(bibletable), (verse.book, verse.chapter, verse.verse, verse.text))
+        dbconn.commit()
+
+        bib = bible.Bible.fromdb(dbconn, bibletable)
+        for idx in range(len(verses)):
+            if bib.verses[idx] != verses[idx]:
+                raise Exception("Expected record at index {} to expand to verse '{}' but was '{}' instead".format(idx, verses[idx], bib.verses[idx]))
