@@ -6,8 +6,8 @@ class BibleVerse(object):
 
     def __init__(self, book, chapter, verse, text, markedup=None):
         self.book = book
-        self.chapter = chapter
-        self.verse = verse
+        self.chapter = int(chapter)
+        self.verse = int(verse)
         self.text = text
         self.markedup = markedup if markedup else text
 
@@ -26,7 +26,7 @@ class BibleVerse(object):
         return NotImplemented
 
     def __str__(self):
-        return "{} {}:{}: {}".format(self.book, self.chapter, self.verse, self.text)
+        return "{} {}:{} {}".format(self.book, self.chapter, self.verse, self.text)
 
 
 class Bible(object):

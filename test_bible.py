@@ -44,7 +44,7 @@ class BibleTestCase(unittest.TestCase):
   </BIBLEBOOK>
   <BIBLEBOOK bnumber="4" bname="PrpBook" bsname="Prp">
     <CHAPTER cnumber="44">
-      <VERS vnumber="55">Nessie Mokele</VERS>
+      <VERS vnumber="44">Nessie Mokele</VERS>
     </CHAPTER>
   </BIBLEBOOK>
   <BIBLEBOOK bnumber="5" bname="GrnBook" bsname="Grn">
@@ -113,36 +113,16 @@ class BibleTestCase(unittest.TestCase):
 
     def test_bible_parsexml(self):
         parsedverses = bible.Bible.parsexml(io.StringIO(self.xmlbiblefragment))
-        print([str(v) for v in parsedverses])
-        for tverse in self.testverses:
-            found = False
-            for pverse in parsedverses:
-                print("Comparing:\n  {}\n  {}".format(pverse, tverse))
-                if pverse == tverse:
-                    found = True
-                    break
-            if not found:
-                raise Exception("Expected to find {} in parsed verses but it wasn't there".format(tverse))
+        if parsedverses != self.testverses:
+            raise Exception("Got different verses back out than I put in")
 
     def test_bible_addverses(self):
-        raise Exception("UNIMPLEMENTED")
-
-    # def test_bible_persistdb(self):
-    #     bibletable = 'testkjv'
-    #     bib = bible.Bible.fromxml(io.StringIO(biblefragment))
-    #     dbconn = sqlite3.connect(':memory:')
-    #     bib.persistdb(dbconn, bibletable)
-    #     curse = dbconn.cursor()
-    #     curse.execute("SELECT * FROM {}".format(bibletable))
-    #     records = curse.fetchall()
-    #     curse.close()
-    #     dbconn.close()
-
-    #     expected_len_records = 10
-    #     expverse = bible.BibleVerse('Genesis', '1', '1', 'In the beginning God created the heaven and the earth.')
-    #     if len(records) != expected_len_records:
-    #         raise Exception("Expected to see {} recoreds but instead got {}".format(len(records), expected_len_records))
-    #     verse = bible.BibleVerse.fromtuple(records[0])
-
-    #     if verse != expverse:
-    #         raise Exception("Expected the first record to expand to verse '{}' but was '{}' instead".format(expverse, verse))
+        dbconn = sqlite3.connect(':memory:')
+        bib = bible.Bible(dbconn, tablename=self.testtable)
+        bib.addverses(self.testverses)
+        curse = dbconn.cursor()
+        curse.execute("SELECT * FROM {}".format(self.testtable))
+        verses = [bible.BibleVerse.fromtuple(v) for v in curse]
+        dbconn.close()
+        if verses != self.testverses:
+            raise Exception("Got different verses back out than I put in")
