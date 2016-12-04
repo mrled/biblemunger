@@ -144,7 +144,7 @@ class BibleMungingServer(object):
             self.initialize_database()
 
     @classmethod
-    def fromconfig(cls, configuration: configparser.ConfigParser):
+    def fromconfig(cls, configuration):
         return BibleMungingServer(
             bible.Bible.fromxml(configuration.get('biblemunger', 'bible')),
             configuration['favorites'],
