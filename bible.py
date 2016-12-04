@@ -31,11 +31,19 @@ class BibleVerse(object):
 
 class Bible(object):
 
-    def __init__(self, verses):
-        self.verses = verses
+    def __init__(self, dbconn, tablename='bible'):
+        self.tablename = tablename
+        self.connection = dbconn
+
+        curse = self.connection.cursor()
+        curse.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
+        if not curse.fetchone():
+            curse.execute("CREATE TABLE {} (book, chapter, verse, text)".format(self.tablename))
+            self.connection.commit()
+        curse.close()
 
     @classmethod
-    def fromxml(cls, file):
+    def parsexml(cls, file):
         def findelems(base, tagname):
             return (child for child in base if child.tag == tagname)
         xmletree = ET.parse(file)
@@ -44,40 +52,33 @@ class Bible(object):
             for chapter in findelems(book, 'CHAPTER'):
                 for verse in findelems(chapter, 'VERS'):
                     verses += [BibleVerse(book.get('bname'), chapter.get('cnumber'), verse.get('vnumber'), verse.text)]
-        return Bible(verses)
+        return verses
 
-    @classmethod
-    def fromdb(cls, dbconn, tablename):
-        curse = dbconn.cursor()
-        curse.execute("SELECT book, chapter, verse, text FROM {}".format(tablename))
-        rows = curse.fetchall()
+    def addverses(self, verses):
+        curse = self.connection.cursor()
+        for verse in verses:
+            curse.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.tablename), (verse.book, verse.chapter, verse.verse, verse.text))
+        self.connection.commit()
+        curse.close()
+
+    def addversesfromxml(self, file):
+        self.addverses(Bible.parsexml(file))
+
+    def search(self, search):
+        curse = self.connection.cursor()
+        sql = "SELECT book, chapter, verse, text FROM {} WHERE text LIKE ?".format(self.tablename)
+        params = ("%{}%".format(search), )
+        curse.execute(sql, params)
         verses = []
-        for row in rows:
-            verses += [BibleVerse.fromtuple(row)]
-        return Bible(verses)
-
-    def persistdb(self, dbconn, tablename):
-        curse = dbconn.cursor()
-        curse.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(tablename))
-        if not curse.fetchone():
-            curse.execute("CREATE TABLE {} (book, chapter, verse, text)".format(tablename))
-            dbconn.commit()
-        for verse in self.verses:
-            curse.execute("INSERT INTO {} values (?, ?, ?, ?)".format(tablename), (verse.book, verse.chapter, verse.verse, verse.text))
-        dbconn.commit()
-
-    def search(self, string):
-        verses = []
-        for verse in self.verses:
-            if re.search(string, verse.text):
-                verses += [verse]
+        for result in curse:
+            verses += [BibleVerse.fromtuple(result)]
+        curse.close()
         return verses
 
     def replace(self, old, new):
-        munged = []
-        for verse in self.search(old):
+        results = self.search(old)
+        for verse in results:
             f = re.IGNORECASE
-            plaintext = re.sub(old, new, verse.text, flags=f)
-            markedtext = re.sub(old, '*****{}******'.format(new), verse.text, flags=f)
-            munged += [BibleVerse(verse.book, verse.chapter, verse.verse, plaintext, markedup=markedtext)]
-        return munged
+            verse.text = re.sub(old, new, verse.text, flags=f)
+            verse.markedup = re.sub(old, '*****{}******'.format(new), verse.text, flags=f)
+        return results
