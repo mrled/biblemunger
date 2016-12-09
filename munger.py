@@ -3,45 +3,24 @@ import json
 import os
 import sqlite3
 import sys
+import threading
 # from pdb import set_trace as strace
 
 import cherrypy
-#from mako.template import Template
-from mako.exceptions import RichTraceback
 from mako.lookup import TemplateLookup
 
-# Necessary because of WSGI; must be done before importing any modules in this directory
 scriptdir = os.path.dirname(os.path.realpath(__file__))
-sys.path = [scriptdir] + sys.path
-import bible
 
-
-def configure():
-    global scriptdir
-
-    # The first of these, the default config file, must exist (and is in git)
-    # The second is an optional config file that can be provided by the user
-    # NOTE: We want the config files to work even for WSGI, so we can't use a
-    #       command line parameter for the user's config
-    defaultconfig = os.path.join(scriptdir, 'biblemunger.config.default')
-    userconfig = os.path.join(scriptdir, 'biblemunger.config')
-
-    configuration = configparser.ConfigParser()
-    configuration.readfp(open(defaultconfig))
-    if os.path.exists(userconfig):
-        configuration.readfp(open(userconfig))
-
-    def resolveconfigpath(path):
-        return path if os.path.isabs(path) else os.path.join(scriptdir, path)
-
-    configuration['biblemunger']['dbpath'] = resolveconfigpath(configuration['biblemunger']['dbpath'])
-    configuration['biblemunger']['bible'] = resolveconfigpath(configuration['biblemunger']['bible'])
-
-    return configuration
+try:
+    import bible
+except:
+    # Necessary because of WSGI; must be done before importing any modules in this directory
+    sys.path = [scriptdir] + sys.path
+    import bible
 
 
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
-    """Callable which sets response.body."""
+    """Callable which sets response.body"""
 
     def __init__(self, template, next_handler):
         self.template = template
@@ -50,14 +29,6 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
     def __call__(self):
         env = globals().copy()
         env.update(self.next_handler())
-        try:
-            self.template.render(**env)
-        except:
-            traceback = RichTraceback()
-            for (filename, lineno, function, line) in traceback.traceback:
-                print('File {} line #{} function {}\n    {}'.format(
-                    filename, lineno, function, line))
-            raise
         return self.template.render(**env)
 
 
@@ -66,24 +37,19 @@ class MakoLoader(object):
     def __init__(self):
         self.lookups = {}
 
-    def __call__(
-            self, filename, directories, module_directory=None,
-            collection_size=-1):
+    def __call__(self, filename, directories, module_directory=None, collection_size=-1):
         # Find the appropriate template lookup.
         key = (tuple(directories), module_directory)
         try:
             lookup = self.lookups[key]
         except KeyError:
-            lookup = TemplateLookup(
-                directories=directories,
-                module_directory=module_directory,
-                collection_size=collection_size)
+            lookup = TemplateLookup(directories=directories, module_directory=module_directory, collection_size=collection_size)
             self.lookups[key] = lookup
         cherrypy.request.lookup = lookup
 
         # Replace the current handler.
-        cherrypy.request.template = t = lookup.get_template(filename)
-        cherrypy.request.handler = MakoHandler(t, cherrypy.request.handler)
+        cherrypy.request.template = lookup.get_template(filename)
+        cherrypy.request.handler = MakoHandler(cherrypy.request.template, cherrypy.request.handler)
 
 
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', MakoLoader())
@@ -95,13 +61,17 @@ class DictEncoder(json.JSONEncoder):
     def default(self, obj):
         return obj.__dict__
 
-    def iterencode(self, value):
-        # Adapted from cherrypy/_cpcompat.py
-        for chunk in super().iterencode(value):
-            yield chunk.encode("utf-8")
+    # def iterencode(self, value):
+    #     for chunk in super().iterencode(value):
+    #         yield chunk.encode("utf-8")
 
     def json_handler(self, *args, **kwargs):
-        # Adapted from cherrypy/lib/jsontools.py
+        """A handler for use with CherryPy
+
+        Can be used like this:
+            denc = DictEncoder()
+            @cherrypy.tools.json_out(handler=denc.json_handler)
+        """
         value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
         return self.iterencode(value)
 
@@ -110,84 +80,84 @@ class BibleMungingServer(object):
 
     dictencoder = DictEncoder()
 
-    def __init__(self, bible, favdict, apptitle, appsubtitle, dbpath, wordfilter):
+    def __init__(self, dbconn, bible, favorites, apptitle, appsubtitle, wordfilter):
+
+        global scriptdir
 
         self._bible = bible
+        self.connection = dbconn
+        self.lock = threading.Lock()
         self.apptitle = apptitle
         self.appsubtitle = appsubtitle
-        self.dbpath = dbpath
+        self.favorite_searches = favorites if favorites else []
 
         if wordfilter:
             from wordfilter import Wordfilter
             self.wordfilter = Wordfilter()
             self.wordfilter.add_words(['QwertyStringUsedForTestingZxcvb'])
         else:
-            self.wordfilter = False
+            class wf:
+                def blacklisted(self, string):
+                    return False
+            self.wordfilter = wf()
 
         deploymentinfofile = os.path.join(scriptdir, 'deploymentinfo.txt')
-        if os.path.exists(deploymentinfofile):
+        try:
             with open(deploymentinfofile) as df:
                 self.deploymentinfo = df.read()
-        else:
+        except:
             self.deploymentinfo = "development version"
 
-        # TODO: refactor this, just use a dictionary directly elsewhere
-        self.favorite_searches = []
-        for key in favdict.keys():
-            self.favorite_searches += [{'search': key, 'replace': favdict[key]}]
-
-        conn = sqlite3.connect(self.dbpath)
-        c = conn.cursor()
-        c.execute(
-            "select name from sqlite_master where type='table' and name='recent_searches'")
-        if not c.fetchone():
-            self.initialize_database()
+        with self.lock:
+            c = self.connection.cursor()
+            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='recent_searches'")
+            if not c.fetchone():
+                self.initialize_database()
+            c.close()
 
     @classmethod
     def fromconfig(cls, configuration):
+        # NOTE: this relies on a full pathname as 'dbpath' in the configuration
+        dburi = "file://{}?cache=shared".format(os.path.abspath(configuration.get('biblemunger', 'dbpath')))
+        dbconn = sqlite3.connect(dburi, uri=True, check_same_thread=False)
+
+        bib = bible.Bible(dbconn)
+        if not bib.initialized:
+            bib.addversesfromxml(os.path.abspath(configuration.get('biblemunger', 'bible')))
+
         return BibleMungingServer(
-            bible.Bible.fromxml(configuration.get('biblemunger', 'bible')),
-            configuration['favorites'],
+            dbconn, bib,
+            # Faves from the config file are a dictionary, but we need a list of {'search': search term, 'replace': replacement} objects
+            [{'search': k, 'replace': v} for k, v in configuration['favorites'].items()],
             configuration.get('biblemunger', 'apptitle'),
             configuration.get('biblemunger', 'appsubtitle'),
-            configuration.get('biblemunger', 'dbpath'),
             configuration.getboolean('biblemunger', 'wordfilter'))
-
-    def search_in_list(self, searchlist, search, replace):
-        for s in searchlist:
-            if s['search'] == search and s['replace'] == replace:
-                return True
-        else:
-            return False
 
     @property
     def recent_searches(self):
-        conn = sqlite3.connect(self.dbpath)
-        c = conn.cursor()
-        c.execute("select search, replace from recent_searches")
-        results = c.fetchall()
-        conn.close()
+        with self.lock:
+            c = self.connection.cursor()
+            c.execute("SELECT search, replace FROM recent_searches")
+            results = c.fetchall()
+            c.close()
         return ({'search': result[0], 'replace': result[1]} for result in results)
 
     def initialize_database(self):
-        conn = sqlite3.connect(self.dbpath)
-        c = conn.cursor()
-        c.execute('''create table recent_searches (search, replace)''')
-        conn.commit()
-        conn.close()
+        with self.lock:
+            c = self.connection.cursor()
+            c.execute("CREATE TABLE recent_searches (search, replace)")
+            self.connection.commit()
+            c.close()
 
     def add_recent_search(self, search, replace):
-        fave = self.search_in_list(self.favorite_searches, search, replace)
-        recent = self.search_in_list(self.recent_searches, search, replace)
-        filtered = self.wordfilter and self.wordfilter.blacklisted(replace)
-        if (fave or recent or filtered):
+        pair = {'search': search, 'replace': replace}
+        if pair in self.favorite_searches or pair in self.recent_searches or self.wordfilter.blacklisted(replace):
             return
-
-        conn = sqlite3.connect(self.dbpath)
-        c = conn.cursor()
-        c.execute("insert into recent_searches values (?, ?)", (search, replace))
-        conn.commit()
-        conn.close()
+        with self.lock:
+            c = self.connection.cursor()
+            c.execute("INSERT INTO recent_searches VALUES (?, ?)", (search, replace))
+            self.connection.commit()
+            c.close()
 
     @cherrypy.expose
     def index(self):
@@ -210,7 +180,6 @@ class BibleMungingServer(object):
         results = None
 
         if search and replace:
-            #resultstitle = "{} &rArr; {}".format(search, replace)
             resultstitle = "{} ⇒ {}".format(search, replace)
             pagetitle = "{}: {}".format(self.apptitle, resultstitle)
             queried = True
@@ -233,6 +202,32 @@ class BibleMungingServer(object):
             'filterinuse':    bool(self.wordfilter)}
 
 
+def configure():
+    """Get biblemunger configuration
+
+    NOTE: It's not currently possible to define more than 1 favorite replacement set with the same search term
+    That is, if you put "search = replace1" and "search = replace2" in the config file, only the second will come through
+
+    TODO: allow definition of multiple replacement sets with the same search term
+    """
+
+    global scriptdir
+
+    # The first of these, the default config file, must exist (and is in git)
+    # The second is an optional config file that can be provided by the user
+    # NOTE: We want the config files to work even for WSGI, so we can't use a
+    #       command line parameter for the user's config
+    defaultconfig = os.path.join(scriptdir, 'biblemunger.config.default')
+    userconfig = os.path.join(scriptdir, 'biblemunger.config')
+
+    configuration = configparser.ConfigParser()
+    configuration.readfp(open(defaultconfig))
+    if os.path.exists(userconfig):
+        configuration.readfp(open(userconfig))
+
+    return configuration
+
+
 def application(environ=None, start_response=None):
     """Webserver setup code
 
@@ -240,6 +235,8 @@ def application(environ=None, start_response=None):
 
     Otherwise, start cherrypy's built-in webserver.
     """
+
+    global scriptdir
 
     mode = 'wsgi' if environ and start_response else 'cherrypy'
 
@@ -253,9 +250,7 @@ def application(environ=None, start_response=None):
             'tools.staticdir.dir': 'static'},
         "/favicon.ico": {
             "tools.staticfile.on": True,
-            "tools.staticfile.filename": os.path.join(
-                scriptdir, 'static', 'favicon.ico')}
-    }
+            "tools.staticfile.filename": os.path.join(scriptdir, 'static', 'favicon.ico')}}
 
     if mode == 'wsgi':
         sys.stdout = sys.stderr
