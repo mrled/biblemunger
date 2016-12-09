@@ -11,6 +11,7 @@ import bible
 
 class BibleTestCase(unittest.TestCase):
 
+    dburi = 'file:TEST_MEMORY_DB?mode=memory&cache=shared'
     testtable = 'testtable'
     create_table_stmt = "CREATE TABLE testtable (book, chapter, verse, text)"
     testverses = [
@@ -60,11 +61,15 @@ class BibleTestCase(unittest.TestCase):
 </XMLBIBLE>
 """
 
+    def _get_connection(self):
+        return sqlite3.connect(self.dburi, uri=True)
+
     def _manual_setup_empty_db(self):
-        dbconn = sqlite3.connect(':memory:')
+        dbconn = self._get_connection()
         curse = dbconn.cursor()
         curse.execute(self.create_table_stmt)
         curse.close()
+        dbconn.commit()
         return dbconn
 
     def _manual_setup_verses_db(self):
@@ -76,40 +81,35 @@ class BibleTestCase(unittest.TestCase):
         return dbconn
 
     def test_bible_init_empty_db(self):
-        dbconn = sqlite3.connect(':memory:')
+        dbconn = self._get_connection()
         bible.Bible(dbconn, tablename=self.testtable)
         curse = dbconn.cursor()
-
         curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
-        passing = curse.fetchone()[0] == self.create_table_stmt
-
+        result = curse.fetchone()[0]
         dbconn.close()
-        if not passing:
+        if result != self.create_table_stmt:
             raise Exception("New Bible object did not initialize its database")
 
     def test_bible_init_initialized_db(self):
         dbconn = self._manual_setup_empty_db()
         bible.Bible(dbconn, tablename=self.testtable)
         curse = dbconn.cursor()
-
         curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
-        passing = curse.fetchone()[0] == self.create_table_stmt
-
+        result = curse.fetchone()[0]
         dbconn.close()
-        if not passing:
+        if result != self.create_table_stmt:
             raise Exception("New Bible object did not initialize its database")
 
     def test_bible_search(self):
         dbconn = self._manual_setup_verses_db()
         bib = bible.Bible(dbconn, tablename=self.testtable)
-
         verses = bib.search("TikTik")
         if len(verses) != 2:
             raise Exception("Expected 2 results but instead got {}".format(len(verses)))
+        dbconn.close()
         for verse in verses:
             if verse not in self.testverses:
                 raise Exception("Verse '{}'' did not get represented properly".format(verse))
-        dbconn.close()
 
     def test_bible_parsexml(self):
         parsedverses = bible.Bible.parsexml(io.StringIO(self.xmlbiblefragment))
@@ -117,7 +117,7 @@ class BibleTestCase(unittest.TestCase):
             raise Exception("Got different verses back out than I put in")
 
     def test_bible_addverses(self):
-        dbconn = sqlite3.connect(':memory:')
+        dbconn = self._get_connection()
         bib = bible.Bible(dbconn, tablename=self.testtable)
         bib.addverses(self.testverses)
         curse = dbconn.cursor()
