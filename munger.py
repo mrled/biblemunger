@@ -73,20 +73,63 @@ class DictEncoder(json.JSONEncoder):
             yield chunk.encode("utf-8")
 
 
+class LockableSqliteConnection(object):
+    """A class, usable as an argument to a 'with' statement, that has a sqlite3.connect() object, a sqlite3.Cursor() object, and a threading.Lock() object
+
+    When the 'with' statement is begun, the internal cursor object is allocated, and the internal lock is acquired. When the 'with' statements terminates, the internal cursor object is closed, the internal connection object is committed, and the internal lock object is released.
+
+    Usable like so:
+
+        lockableconn = LockablesqliteConnection("file:///some/database.sqlite?cache=shared")
+        with lockableconn as connection:
+            connection.cursor.execute("SOME SQL HERE")
+            results = connection.cursor.fetchall()
+
+    Intended to take the place of more cumbersome syntax like:
+
+        lock = threading.Lock()
+        dbconn = sqlite3.connect("file:///some/database.sqlite?cache=shared", uri=True, check_same_thread=False)
+        with lock:
+            with dbconn as connection:
+                cursor = connection.cursor()
+                cursor.execute("SOME SQL HERE")
+                results = cursor.fetchall()
+                cursor.close()
+    """
+
+    def __init__(self, dburi):
+        self.lock = threading.Lock()
+        self.connection = sqlite3.connect(dburi, uri=True, check_same_thread=False)
+        self.cursor = None
+
+    def __enter__(self):
+        self.lock.acquire()
+        self.cursor = self.connection.cursor()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.lock.release()
+        self.connection.commit()
+        self.cursor.close()
+        self.cursor = None
+
+
 class BibleMungingServer(object):
 
     dictencoder = DictEncoder()
 
-    def __init__(self, dbconn, bible, favorites, apptitle, appsubtitle, wordfilter):
+    def __init__(self, lockableconn, bible, favorites, apptitle, appsubtitle, wordfilter):
 
         global scriptdir
 
         self._bible = bible
-        self.connection = dbconn
-        self.lock = threading.Lock()
+        self.connection = lockableconn
         self.apptitle = apptitle
         self.appsubtitle = appsubtitle
         self.favorite_searches = favorites if favorites else []
+
+        self.tablenames = {
+            'recents': 'recent_searches'}
 
         if wordfilter:
             from wordfilter import Wordfilter
@@ -105,25 +148,21 @@ class BibleMungingServer(object):
         except:
             self.deploymentinfo = "development version"
 
-        with self.lock:
-            c = self.connection.cursor()
-            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='recent_searches'")
-            if not c.fetchone():
-                self.initialize_database()
-            c.close()
+        self.initialize_database()
 
     @classmethod
     def fromconfig(cls, configuration):
         # NOTE: this relies on a full pathname as 'dbpath' in the configuration
         dburi = "file://{}?cache=shared".format(os.path.abspath(configuration.get('biblemunger', 'dbpath')))
         dbconn = sqlite3.connect(dburi, uri=True, check_same_thread=False)
+        lockableconn = LockableSqliteConnection(dburi)
 
         bib = bible.Bible(dbconn)
         if not bib.initialized:
             bib.addversesfromxml(os.path.abspath(configuration.get('biblemunger', 'bible')))
 
         return BibleMungingServer(
-            dbconn, bib,
+            lockableconn, bib,
             # Faves from the config file are a dictionary, but we need a list of {'search': search term, 'replace': replacement} objects
             [{'search': k, 'replace': v} for k, v in configuration['favorites'].items()],
             configuration.get('biblemunger', 'apptitle'),
@@ -132,29 +171,23 @@ class BibleMungingServer(object):
 
     @property
     def recent_searches(self):
-        with self.lock:
-            c = self.connection.cursor()
-            c.execute("SELECT search, replace FROM recent_searches")
-            results = c.fetchall()
-            c.close()
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablenames['recents']))
+            results = dbconn.cursor.fetchall()
         return ({'search': result[0], 'replace': result[1]} for result in results)
 
     def initialize_database(self):
-        with self.lock:
-            c = self.connection.cursor()
-            c.execute("CREATE TABLE recent_searches (search, replace)")
-            self.connection.commit()
-            c.close()
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['recents']))
+            if not dbconn.cursor.fetchone():
+                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablenames['recents']))
 
     def add_recent_search(self, search, replace):
         pair = {'search': search, 'replace': replace}
         if pair in self.favorite_searches or pair in self.recent_searches or self.wordfilter.blacklisted(replace):
             return
-        with self.lock:
-            c = self.connection.cursor()
-            c.execute("INSERT INTO recent_searches VALUES (?, ?)", (search, replace))
-            self.connection.commit()
-            c.close()
+        with self.connection as dbconn:
+            dbconn.cursor.execute("INSERT INTO {} VALUES (?, ?)".format(self.tablenames['recents']), (search, replace))
 
     @cherrypy.expose
     def index(self):
