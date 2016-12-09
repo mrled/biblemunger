@@ -1,18 +1,23 @@
 import json
 import unittest
 
+import bible
 import munger
 
 
-class MungerTestCase(unittest.TestCase):
+# TODO: like, write the Mako tests okay
+# class MakoBullshitTestCase(unittest.TestCase):
 
-    # def test_MakoHandler(self):
-    #     raise Exception("TODO: implement test_MakoHandler()")
+#     def test_MakoHandler(self):
+#         raise Exception("TODO: implement test_MakoHandler()")
 
-    # def test_MakoLoader(self):
-    #     raise Exception("TODO: implement test_MakoLoader()")
+#     def test_MakoLoader(self):
+#         raise Exception("TODO: implement test_MakoLoader()")
 
-    def test_DictEncoder(self):
+
+class DictEncoderTestCase(unittest.TestCase):
+
+    def test_encoder(self):
         class TestClass(object):
             def __init__(self):
                 self.a = 1
@@ -30,5 +35,30 @@ class MungerTestCase(unittest.TestCase):
                 "    Loaded:    " + parsedjson,
                 "    Expected:  " + testjson)))
 
-    # def test_BibleMungingServer(self):
-    #     raise Exception("implement test_BibleMungingServer()")
+
+# class LockableSqliteConnectionTestCase(unittest.TestCase):
+
+#     def test_lsc(self):
+#         raise Exception("TODO: implement test_lsc()")
+
+
+class BibleMungingServerTestCase(unittest.TestCase):
+
+    dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
+    lockableconn = munger.LockableSqliteConnection(dburi)
+    create_table_stmt = "CREATE TABLE recent_searches (search, replace)"
+
+    def test_initialize_database(self):
+        bib = bible.Bible(self.lockableconn.connection)
+        faves = [
+            {'search': 'search one', 'replace': 'replace one'},
+            {'search': 'search two', 'replace': 'replace two'},
+            {'search': 'search tre', 'replace': 'replace tre'}]
+        bms = munger.BibleMungingServer(self.lockableconn, bib, faves, "app title", "app subtitle", wordfilter=False)
+        bms.initialize_database()
+        recents_tablename = bms.tablenames['recents']
+        with self.lockableconn as dbconn:
+            dbconn.cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(recents_tablename))
+            result = dbconn.cursor.fetchone()
+        if result[0] != self.create_table_stmt:
+            raise Exception("Database initialization failed; expected '{}' but found '{}'".format(self.create_table_stmt, result))
