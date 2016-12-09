@@ -36,10 +36,16 @@ class DictEncoderTestCase(unittest.TestCase):
                 "    Expected:  " + testjson)))
 
 
-# class LockableSqliteConnectionTestCase(unittest.TestCase):
+class LockableSqliteConnectionTestCase(unittest.TestCase):
 
-#     def test_lsc(self):
-#         raise Exception("TODO: implement test_lsc()")
+    def test_lsc(self):
+        dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
+        lockableconn = munger.LockableSqliteConnection(dburi)
+        with lockableconn as dbconn:
+            dbconn.cursor.execute("SELECT 1")
+            result = dbconn.cursor.fetchone()[0]
+        if result != 1:
+            raise Exception("Expected result to be '1' but was '{}'".format(result))
 
 
 class BibleMungingServerTestCase(unittest.TestCase):
