@@ -54,6 +54,13 @@ class Bible(object):
                     verses += [BibleVerse(book.get('bname'), chapter.get('cnumber'), verse.get('vnumber'), verse.text)]
         return verses
 
+    @property
+    def initialized(self):
+        curse = self.connection.cursor()
+        curse.execute("SELECT verse FROM {} LIMIT 1".format(self.tablename))
+        result = curse.fetchone()
+        return result is not None
+
     def addverses(self, verses):
         curse = self.connection.cursor()
         for verse in verses:
