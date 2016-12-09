@@ -4,48 +4,29 @@ Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toas
 
 ## Requirements
 
- -  For the CLI, only Python3 is required.
- -  For the web server, the mako and cherrypy modules must be installed.
-     -  You can install them from `pip`, if `pip3 install Mako CherryPy`
-     -  Note that CherryPy for Python 3 in Ubuntu 14.04 LTS is version
-        `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a
-        few seconds after it's started with an error like
-        `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not
-        bound on '127.0.0.1'",)`, even if the port open. Not sure if this
-        applies to vanilla CherryPy 3.2.2.
+- Python 3.4+
+- sqlite 3.7.13 (required for shared cache mode)
+- cherrypy: `pip install CherryPy`. Note: CherryPy for Python 3 in Ubuntu 14.04 LTS is version `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a few seconds after it's started with an error like `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not bound on '127.0.0.1'",)`, even if the port open.
+- mako: `pip install Mako`
+- optional: the Wordfilter module: `pip install Wordfilter`
 
-## CLI
+## Usage
 
-Find the text "hearts": 
+For development use, this will start CherryPy's webserver:
 
-    biblemunger.py -s hearts
+    python3 ./__main__.py
 
-Replace "hearts" with "feels":
+If it's been installed via `pip`, this will start CherryPy's webserver:
 
-    biblemunger.py -s hearts -r feels
+    python3 -m biblemunger
 
-## Web
+If you want to run from Apache, consider using WSGI:
 
-    biblemunger.py -w
-
-### Running in a subdirectory
-
-The way the URLs work, subdirectory support isn't quite right when run from CherryPy directly. That is, having the app at `http://example.com/` works fine, but at `http://example.com/subdir` doesn't. This is because I couldn't figure out how to get CherryPy to redirect `/subapp` to `/subapp/`. 
-
-### Running behind Apache
-
-Apache can be configured to proxy requests to CherryPy, like so: 
-
-    <Location /biblemunger/>
-        Order allow,deny
-        allow from all
-        ProxyPass http://localhost:8187/
-        ProxyPassReverse http://localhost:8187/
-    </Location>
-
-Furthermore, this can solve the subdirectory problem:
-
-    Redirect permanent /biblemunger /biblemunger/
+    <Directory /path/to/webapps>
+        Options +ExecCGI 
+        Require all granted
+    </Directory>
+    WSGIScriptAlias /biblemunger /path/to/webapps/biblemunger/munger.py
 
 ## TODO
 
