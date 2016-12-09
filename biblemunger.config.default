@@ -4,13 +4,14 @@ apptitle = biblemunger
 appsubtitle = provacative text-replacement in famous literature
 dbpath = biblemunger.sqlite
 server = 127.0.0.1
+# NOTE: 8187 == BIBL
 port = 8187
 wordfilter = true
 
 [favorites]
+# NOTE: it's not currently possible to define more than 1 favorite replacement set with the same search term
 hearts = feels
 servant = uber driver
 thy salvation = dat ass
 staff = dick
 
-# NOTE: 8187 == BIBL
