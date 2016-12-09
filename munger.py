@@ -61,11 +61,7 @@ class DictEncoder(json.JSONEncoder):
     def default(self, obj):
         return obj.__dict__
 
-    # def iterencode(self, value):
-    #     for chunk in super().iterencode(value):
-    #         yield chunk.encode("utf-8")
-
-    def json_handler(self, *args, **kwargs):
+    def cherrypy_json_handler(self, *args, **kwargs):
         """A handler for use with CherryPy
 
         Can be used like this:
@@ -73,7 +69,8 @@ class DictEncoder(json.JSONEncoder):
             @cherrypy.tools.json_out(handler=denc.json_handler)
         """
         value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
-        return self.iterencode(value)
+        for chunk in self.iterencode(value):
+            yield chunk.encode("utf-8")
 
 
 class BibleMungingServer(object):
@@ -164,7 +161,7 @@ class BibleMungingServer(object):
         raise cherrypy.HTTPRedirect("munge")
 
     @cherrypy.expose
-    @cherrypy.tools.json_out(handler=dictencoder.json_handler)
+    @cherrypy.tools.json_out(handler=dictencoder.cherrypy_json_handler)
     def bible(self, search=None):
         if search:
             return self._bible.search(search)
