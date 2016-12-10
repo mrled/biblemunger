@@ -44,27 +44,64 @@ class LockableSqliteConnectionTestCase(unittest.TestCase):
         with lockableconn as dbconn:
             dbconn.cursor.execute("SELECT 1")
             result = dbconn.cursor.fetchone()[0]
-        if result != 1:
-            raise Exception("Expected result to be '1' but was '{}'".format(result))
+        self.assertEqual(result, 1)
 
 
 class BibleMungingServerTestCase(unittest.TestCase):
 
-    dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
-    lockableconn = munger.LockableSqliteConnection(dburi)
-    create_table_stmt = "CREATE TABLE recent_searches (search, replace)"
+    def setUp(self):
+        self.dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
+        self.dbconn = munger.LockableSqliteConnection(self.dburi)
 
-    def test_initialize_database(self):
-        bib = bible.Bible(self.lockableconn.connection)
+    def tearDown(self):
+        self.dbconn.connection.close()
+
+    def test_object_init_nofilter(self):
+        apptitle = "test app title"
+        appsubtitle = "test app subtitle"
         faves = [
             {'search': 'search one', 'replace': 'replace one'},
             {'search': 'search two', 'replace': 'replace two'},
             {'search': 'search tre', 'replace': 'replace tre'}]
-        bms = munger.BibleMungingServer(self.lockableconn, bib, faves, "app title", "app subtitle", wordfilter=False)
+        bib = bible.Bible(self.dbconn.connection)
+        bms = munger.BibleMungingServer(self.dbconn, bib, faves, apptitle, appsubtitle, wordfilter=False)
+        self.assertEqual(faves, bms.favorite_searches)
+        self.assertEqual(apptitle, bms.apptitle)
+        self.assertEqual(appsubtitle, bms.appsubtitle)
+        self.assertNotIn('add_words', dir(bms.wordfilter))
+
+    def test_object_init_filter(self):
+        testword = 'QwertyStringUsedForTestingZxcvb'
+        bib = bible.Bible(self.dbconn.connection)
+        bms = munger.BibleMungingServer(self.dbconn, bib, [], "apptitle", "appsubtitle", wordfilter=True)
+        self.assertIn('add_words', dir(bms.wordfilter))
+        self.assertFalse(bms.wordfilter.blacklisted(testword))
+        bms.wordfilter.add_words([testword])
+        self.assertTrue(bms.wordfilter.blacklisted(testword))
+
+    def test_initialize_database(self):
+        create_table_stmt = "CREATE TABLE recent_searches (search, replace)"
+        bib = bible.Bible(self.dbconn.connection)
+        bms = munger.BibleMungingServer(self.dbconn, bib, [], "app title", "app subtitle", wordfilter=False)
         bms.initialize_database()
         recents_tablename = bms.tablenames['recents']
-        with self.lockableconn as dbconn:
+        with self.dbconn as dbconn:
             dbconn.cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(recents_tablename))
             result = dbconn.cursor.fetchone()
-        if result[0] != self.create_table_stmt:
-            raise Exception("Database initialization failed; expected '{}' but found '{}'".format(self.create_table_stmt, result))
+        self.assertEqual(result[0], create_table_stmt)
+
+    def test_recent_searches(self):
+        bib = bible.Bible(self.dbconn.connection)
+        bms = munger.BibleMungingServer(self.dbconn, bib, [], "app title", "app subtitle", wordfilter=False)
+        bms.initialize_database()
+        recents = [
+            ('search one', 'replace one'),
+            ('search two', 'replace two'),
+            ('search tre', 'replace tre')]
+        with self.dbconn as dbconn:
+            for recent in recents:
+                dbconn.cursor.execute("INSERT INTO {} VALUES (?, ?)".format(bms.tablenames['recents']), (recent[0], recent[1]))
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT * FROM {}".format(bms.tablenames['recents']))
+            results = dbconn.cursor.fetchall()
+        self.assertEqual(recents, results)

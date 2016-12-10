@@ -78,6 +78,8 @@ class LockableSqliteConnection(object):
 
     When the 'with' statement is begun, the internal cursor object is allocated, and the internal lock is acquired. When the 'with' statements terminates, the internal cursor object is closed, the internal connection object is committed, and the internal lock object is released.
 
+    Note that it does not *close* the connection; the caller is responsible for this.
+
     Usable like so:
 
         lockableconn = LockablesqliteConnection("file:///some/database.sqlite?cache=shared")
@@ -134,7 +136,6 @@ class BibleMungingServer(object):
         if wordfilter:
             from wordfilter import Wordfilter
             self.wordfilter = Wordfilter()
-            self.wordfilter.add_words(['QwertyStringUsedForTestingZxcvb'])
         else:
             class wf:
                 def blacklisted(self, string):
