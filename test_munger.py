@@ -29,11 +29,7 @@ class DictEncoderTestCase(unittest.TestCase):
         # Be careful that your keys are sorted
         testjson = '''{"a": 1, "b": 2, "c": [3, 33, 333], "d": {"f": 4, "fo": 44, "fou": 444, "four": 4444}, "e": "F I V E"}'''
         parsedjson = json.dumps(testobj, cls=munger.DictEncoder, sort_keys=True)
-        if testjson != parsedjson:
-            raise Exception("\n".join((
-                "Loaded JSON object did not match test object:",
-                "    Loaded:    " + parsedjson,
-                "    Expected:  " + testjson)))
+        self.assertEqual(testjson, parsedjson)
 
 
 class LockableSqliteConnectionTestCase(unittest.TestCase):

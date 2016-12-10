@@ -61,68 +61,57 @@ class BibleTestCase(unittest.TestCase):
 </XMLBIBLE>
 """
 
-    def _get_connection(self):
-        return sqlite3.connect(self.dburi, uri=True)
+    def setUp(self):
+        self.dbconn = sqlite3.connect(self.dburi, uri=True)
+        self.curse = self.dbconn.cursor()
+        self._bible = None
 
-    def _manual_setup_empty_db(self):
-        dbconn = self._get_connection()
-        curse = dbconn.cursor()
-        curse.execute(self.create_table_stmt)
-        curse.close()
-        dbconn.commit()
-        return dbconn
+    def tearDown(self):
+        self.curse.close()
+        self.dbconn.close()
+        self._bible = None
 
-    def _manual_setup_verses_db(self):
-        dbconn = self._manual_setup_empty_db()
-        curse = dbconn.cursor()
-        for verse in self.testverses:
-            curse.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.testtable), (verse.book, verse.chapter, verse.verse, verse.text))
-        curse.close()
-        return dbconn
+    @property
+    def bible(self):
+        """A bible.Bible object
+
+        Intended to add it in the setUp() method, but using a lazily initialized property instead
+        This way, our tests can control when to run the bible.Bible.__init__ code
+        """
+        if not self._bible:
+            self._bible = bible.Bible(self.dbconn, tablename=self.testtable)
+        return self._bible
 
     def test_bible_init_empty_db(self):
-        dbconn = self._get_connection()
-        bible.Bible(dbconn, tablename=self.testtable)
-        curse = dbconn.cursor()
-        curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
-        result = curse.fetchone()[0]
-        dbconn.close()
-        if result != self.create_table_stmt:
-            raise Exception("New Bible object did not initialize its database")
+        self.bible
+        self.curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
+        result = self.curse.fetchone()[0]
+        self.assertEqual(result, self.create_table_stmt)
 
     def test_bible_init_initialized_db(self):
-        dbconn = self._manual_setup_empty_db()
-        bible.Bible(dbconn, tablename=self.testtable)
-        curse = dbconn.cursor()
-        curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
-        result = curse.fetchone()[0]
-        dbconn.close()
-        if result != self.create_table_stmt:
-            raise Exception("New Bible object did not initialize its database")
+        self.curse.execute(self.create_table_stmt)
+        self.dbconn.commit()
+        self.bible
+        self.curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
+        result = self.curse.fetchone()[0]
+        self.assertEqual(result, self.create_table_stmt)
 
     def test_bible_search(self):
-        dbconn = self._manual_setup_verses_db()
-        bib = bible.Bible(dbconn, tablename=self.testtable)
-        verses = bib.search("TikTik")
-        if len(verses) != 2:
-            raise Exception("Expected 2 results but instead got {}".format(len(verses)))
-        dbconn.close()
-        for verse in verses:
-            if verse not in self.testverses:
-                raise Exception("Verse '{}'' did not get represented properly".format(verse))
+        self.curse.execute(self.create_table_stmt)
+        for verse in self.testverses:
+            self.curse.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.testtable), (verse.book, verse.chapter, verse.verse, verse.text))
+        self.dbconn.commit()
+
+        testverses = [self.testverses[0], self.testverses[-1]]
+        verses = self.bible.search("TikTik")
+        self.assertEqual(verses, testverses)
 
     def test_bible_parsexml(self):
         parsedverses = bible.Bible.parsexml(io.StringIO(self.xmlbiblefragment))
-        if parsedverses != self.testverses:
-            raise Exception("Got different verses back out than I put in")
+        self.assertEqual(parsedverses, self.testverses)
 
     def test_bible_addverses(self):
-        dbconn = self._get_connection()
-        bib = bible.Bible(dbconn, tablename=self.testtable)
-        bib.addverses(self.testverses)
-        curse = dbconn.cursor()
-        curse.execute("SELECT * FROM {}".format(self.testtable))
-        verses = [bible.BibleVerse.fromtuple(v) for v in curse]
-        dbconn.close()
-        if verses != self.testverses:
-            raise Exception("Got different verses back out than I put in")
+        self.bible.addverses(self.testverses)
+        self.curse.execute("SELECT * FROM {}".format(self.testtable))
+        verses = [bible.BibleVerse.fromtuple(v) for v in self.curse]
+        self.assertEqual(verses, self.testverses)
