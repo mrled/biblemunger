@@ -5,24 +5,24 @@
 %>
 <html>
 <head>
-  <title>${pagetitle |h}</title>
+  <title>${pagetitle}</title>
   <script type="text/javascript" src="./static/bmweb.js"></script>
   <link type="text/css" rel="stylesheet" href="./static/bmweb.css"></link>
-  <meta name="og:title" content="${pagetitle |h}" />
+  <meta name="og:title" content="${pagetitle}" />
   <link rel="image_src" href="./static/bible.png" />
   %if results:
     ## NOTE: Facebook will ignore any text that contains markup here :(
     ##       so we cannot embolden our munged terms :(:(
-    <meta property="og:description" content="${str(results[random.randrange(len(results))]) |h}" />
+    <meta property="og:description" content="${str(results[random.randrange(len(results))])}" />
   %else:
-    <meta property="og:description" content="${appsubtitle |h}" />
+    <meta property="og:description" content="${appsubtitle}" />
   %endif
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
 </head>
 <body><div id="bodyContent">
 
-<h1><a href="./">${apptitle |h}</a></h1>
-<h2 id="subtitleH2">${appsubtitle |h}</h2>
+<h1><a href="./">${apptitle}</a></h1>
+<h2 id="subtitleH2">${appsubtitle}</h2>
 
 <div id="intro">
   <div id="cutesyFuckingIcon" class="sectionGlyphLeft">
@@ -41,7 +41,7 @@
   ## We aren't setting sectionGlyphLeft here because I can't fucking make it look right
   <div id="wtfSectionListContainer" class="sectionContentCenter">
     <ul id="wtfSectionList" class="noBullets">
-      <li class="halfSpacedList">${apptitle |h} is a stupid thing that will replace arbitrary text in the Bible with other arbitrary text</li>
+      <li class="halfSpacedList">${apptitle} is a stupid thing that will replace arbitrary text in the Bible with other arbitrary text</li>
       <li class="halfSpacedList">It was inspired by <a href="http://the-toast.net/series/bible-verses/">some excellence</a> by Mallory Ortberg (<a href="http://the-toast.net/2014/12/29/bible-verses-thou-shalt-not-replaced-can-u-not/">this one</a> is my personal favorite)</li>
       <li class="halfSpacedList">It uses an XML KJV from <a href="http://sourceforge.net/projects/zefania-sharp/">the Zefania project</a>, which probably would not appreciate this at all</li>
       <li class="halfSpacedList"><a href="http://younix.us">mrled</a> is responsible for this bullshit</li>
@@ -82,7 +82,7 @@
       <ul class="noBullets"> 
         %for fav in favorites:
           <% s = fav['search']; r = fav['replace'] %>
-          <li><a href="./munge?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
+          <li><a href="./munge?search=${s}&replace=${r}">${s} &rArr; ${r}</a></li>
         %endfor
       </ul>
     %else:
@@ -99,7 +99,7 @@
             ##    <% break %> 
             ##%endif
             <% s = rec['search']; r = rec['replace'] %>
-            <li><a href="./munge?search=${s |h}&replace=${r |h}">${s |h} &rArr; ${r |h}</a></li>
+            <li><a href="./munge?search=${s}&replace=${r}">${s} &rArr; ${r}</a></li>
         %endfor
       </ul></p>
     %else:
@@ -113,23 +113,23 @@
 <form id="mungerForm" method=GET action="./munge">
   <span class="labelAndBox" id="searchBox">Search:
     <input type=text name="search" size=20 autofocus="true" autocapitalize="off"
-      value="${search if search else '' |h}" /></span>
+      value="${search if search else ''}" /></span>
   <span class="labelAndBox" id="replaceBox">Replace:
     <input type=text name="replace" size=20 autocapitalize="off"
-      value="${replace if replace else '' |h}" /></span>
+      value="${replace if replace else ''}" /></span>
   <span id="mungeButton"><input type=submit value="Munge" /></span>
 </form>
 </div>
 
 %if queried:
-  <h2>${resultstitle |h}</h2>
+  <h2>${resultstitle}</h2>
   <p>Embolden replacement text 
     <input name="embolden" id="emboldenbox" type="checkbox" checked="checked" onclick="emboldenMunged()"></p>
   <div id="mungedResults">
     %if results:
       <table border=0 cellspacing=5 cellpadding=5 align="CENTER">
       %for verse in results:
-        <tr><td><strong>${verse.book |h} ${verse.chapter |h}:${verse.verse |h}</strong></td>
+        <tr><td><strong>${verse.book} ${verse.chapter}:${verse.verse}</strong></td>
         <%
             escaped = markupsafe.escape(verse.markedup)
             slashspanned = re.sub('\*\*\*\*\*\*', '</span>', escaped)
@@ -149,5 +149,5 @@
 </div>
 
 </div></body>
-<!--${deploymentinfo |h}-->
+<!--${deploymentinfo}-->
 </html>
