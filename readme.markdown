@@ -64,6 +64,8 @@ Things that can be done at any time
 - Tests
     - Calculate test coverage
     - Write tests until I hit 100% coverage
+    - How to test CherryPy apps: http://docs.cherrypy.org/en/latest/advanced.html#testing-your-application
+    - How to test CherryPy apps without running the full server: https://bitbucket.org/Lawouach/cherrypy-recipes/src/1a27059966e962be52b2abd91e9709c3ee63cf2d/testing/unit/serverless/test.py?at=default&fileviewer=file-view-default
 - Handle results page
     - I don't like pagination, but that is a naive solution to the current problem of very large pages if you try to text-replace on "the"
 - Add a reading mode to the app
