@@ -78,6 +78,13 @@ Things that can be done at any time
     - Also consider having `Next`/`Back` buttons on each book/chapter/verse where appropriate
     - Obviously this goes hand in hand with a browse mode
 
+#### Redesigning the interaction model
+
+- Hitting the `[Munge]` button will update browser URL bar with [`history.pushState()`](https://developer.mozilla.org/en-US/docs/Web/API/History_API)
+- `history.pushState()` does *not* load what is added to the history, or even check that it exists
+- I'll still use server-generated HTML, but that generation will only do the stuff like setting `<og:description>` that can't be done dynamically in JavaScript after the page has been downloaded
+- Everything that can bre done dynamically in JS should be, including loading a new batch of verses
+
 ### BibleMunger 2.1: MadLibs
 
 - Create a replacement set with empty replacement values to designate a madlibs set
