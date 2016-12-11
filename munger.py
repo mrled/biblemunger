@@ -1,6 +1,6 @@
 import configparser
 import os
-import sqlite3
+import re
 import sys
 
 import cherrypy
@@ -16,121 +16,145 @@ import util   # noqa
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
 
 
-class BibleMungingServer(object):
+# raise Exception(
+#     "Set up database out of band: recents",
+#     "Favorites should now be stored in the database",
+#     "Move deploymentinfo logic to outside of ApiServer",
+#     "Don't initialize bible in .fromconfig() method",
+#     "Add recent search in client side JS",
+#     "Fill in contents of search and replace boxes with client side JS",
+#     "Should enabling a wordfilter scrub out filtered shit from the database?"
+# )
 
-    dictencoder = util.DictEncoder()
 
-    def __init__(self, lockableconn, bible, favorites, apptitle, appsubtitle, wordfilter):
+class ImpotentCensor(object):
+    """A class which implements Wordfilter's blacklisted() method with one that always returns False"""
 
-        global scriptdir
+    def blacklisted(self, string):
+        return False
 
-        self._bible = bible
+
+class SavedSearches(object):
+
+    exposed = True
+
+    def __init__(self, lockableconn, tablename, censor):
         self.connection = lockableconn
-        self.apptitle = apptitle
-        self.appsubtitle = appsubtitle
-        self.favorite_searches = favorites if favorites else []
+        self.tablename = tablename
+        self.censor = censor
 
-        self.tablenames = {
-            'recents': 'recent_searches'}
+    @cherrypy.tools.json_out()
+    def GET(self):
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablename))
+            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
+        return results or []
 
-        if wordfilter:
-            from wordfilter import Wordfilter
-            self.wordfilter = Wordfilter()
-        else:
-            class wf:
-                def blacklisted(self, string):
-                    return False
-            self.wordfilter = wf()
+    def PUT(self, search, replace):
+        if self.censor.blacklisted(replace):
+            return
+        with self.connection as dbconn:
+            testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
+            insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
+            params = (search, replace)
+            dbconn.cursor.execute(testsql, params)
+            if dbconn.cursor.fetchall() is None:
+                dbconn.cursor.execute(insertsql, params)
 
+
+class VersionApi(object):
+    exposed = True
+
+    def GET(self):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
         deploymentinfofile = os.path.join(scriptdir, 'deploymentinfo.txt')
         try:
             with open(deploymentinfofile) as df:
-                self.deploymentinfo = df.read()
+                deploymentinfo = df.read()
         except:
-            self.deploymentinfo = "development version"
+            deploymentinfo = "development version"
+        return deploymentinfo
 
+
+class BibleSearchApi(object):
+    exposed = True
+    dictencoder = util.DictEncoder()
+
+    def __init__(self, bible):
+        self.bible = bible
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out(handler=dictencoder.cherrypy_json_handler)
+    def GET(self, search):
+        return self.bible.search(search)
+
+
+class ApiServer(object):
+
+    exposed = True
+    tablenames = {
+        'recents': 'recent_searches',
+        'favorites': 'favorite_searches'}
+
+    def __init__(self, lockableconn, bible, censor):
+
+        global scriptdir
+
+        self.connection = lockableconn
         self.initialize_database()
 
-    @classmethod
-    def fromconfig(cls, configuration):
-        # NOTE: this relies on a full pathname as 'dbpath' in the configuration
-        dburi = "file://{}?cache=shared".format(os.path.abspath(configuration.get('biblemunger', 'dbpath')))
-        dbconn = sqlite3.connect(dburi, uri=True, check_same_thread=False)
-        lockableconn = util.LockableSqliteConnection(dburi)
-
-        bib = bible.Bible(dbconn)
-        if not bib.initialized:
-            bib.addversesfromxml(os.path.abspath(configuration.get('biblemunger', 'bible')))
-
-        return BibleMungingServer(
-            lockableconn, bib,
-            # Faves from the config file are a dictionary, but we need a list of {'search': search term, 'replace': replacement} objects
-            [{'search': k, 'replace': v} for k, v in configuration['favorites'].items()],
-            configuration.get('biblemunger', 'apptitle'),
-            configuration.get('biblemunger', 'appsubtitle'),
-            configuration.getboolean('biblemunger', 'wordfilter'))
-
-    @property
-    def recent_searches(self):
-        with self.connection as dbconn:
-            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablenames['recents']))
-            results = dbconn.cursor.fetchall()
-        return ({'search': result[0], 'replace': result[1]} for result in results)
+        self.recents = SavedSearches(self.connection, self.tablenames['recents'], censor)
+        self.favorites = SavedSearches(self.connection, self.tablenames['favorites'], censor)
+        self.version = VersionApi()
+        self.search = BibleSearchApi(bible)
 
     def initialize_database(self):
         with self.connection as dbconn:
             dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['recents']))
             if not dbconn.cursor.fetchone():
                 dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablenames['recents']))
+            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['favorites']))
+            if not dbconn.cursor.fetchone():
+                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablenames['favorites']))
 
-    def add_recent_search(self, search, replace):
-        pair = {'search': search, 'replace': replace}
-        if pair in self.favorite_searches or pair in self.recent_searches or self.wordfilter.blacklisted(replace):
-            return
-        with self.connection as dbconn:
-            dbconn.cursor.execute("INSERT INTO {} VALUES (?, ?)".format(self.tablenames['recents']), (search, replace))
+    def GET(self):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
+        return "Welcome to the BibleMunger API"
 
-    @cherrypy.expose
-    def index(self):
-        raise cherrypy.HTTPRedirect("munge")
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out(handler=dictencoder.cherrypy_json_handler)
-    def bible(self, search=None):
-        if search:
-            return self._bible.search(search)
-        else:
-            raise cherrypy.HTTPError(400, "No search terms")
+class FrontEndServer(object):
+
+    dictencoder = util.DictEncoder()
+
+    def __init__(self, lockableconn, bible, filtering=False):
+
+        global scriptdir
+
+        self._bible = bible
+        self.connection = lockableconn
+        self.filtering = filtering
+        self.apptitle = "biblemunger"
+        self.appsubtitle = "provocative text replacement in famous literature"
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename='munge.mako')
-    def munge(self, search=None, replace=None):
-        pagetitle = self.apptitle
-        queried = False
-        resultstitle = None
-        results = None
-
+    def index(self, search=None, replace=None):
         if search and replace:
-            resultstitle = "{} ⇒ {}".format(search, replace)
-            pagetitle = "{}: {}".format(self.apptitle, resultstitle)
-            queried = True
-            results = self._bible.replace(search, replace)
-            if results:
-                self.add_recent_search(search, replace)
-
+            pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
+            # TODO: put a method for finding the shortest verse matching a search on the bible object?
+            verses = self._bible.search(search)
+            if len(verses) > 0:
+                shortestresult = min(verses, key=len)
+                exreplacement = re.sub(search, replace, shortestresult)
+        else:
+            pagetitle = self.apptitle
+            exreplacement = None
         return {
             'pagetitle':      pagetitle,
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
-            'queried':        queried,
-            'resultstitle':   resultstitle,
-            'results':        results,
-            'favorites':      self.favorite_searches,
-            'recents':        self.recent_searches,
-            'search':         search,
-            'replace':        replace,
-            'deploymentinfo': self.deploymentinfo,
-            'filterinuse':    bool(self.wordfilter)}
+            'exreplacement':  exreplacement,
+            'filterinuse':    self.filtering}
 
 
 def configure():
@@ -146,8 +170,7 @@ def configure():
 
     # The first of these, the default config file, must exist (and is in git)
     # The second is an optional config file that can be provided by the user
-    # NOTE: We want the config files to work even for WSGI, so we can't use a
-    #       command line parameter for the user's config
+    # NOTE: We want the config files to work even for WSGI, so we can't use a command line parameter for the user's config
     defaultconfig = os.path.join(scriptdir, 'biblemunger.config.default')
     userconfig = os.path.join(scriptdir, 'biblemunger.config')
 
@@ -172,16 +195,20 @@ def application(environ=None, start_response=None):
     mode = 'wsgi' if environ and start_response else 'cherrypy'
 
     configuration = configure()
-    cpconfig = {
-        '/': {
-            'tools.mako.directories': os.path.join(scriptdir, 'temple'),
-            'tools.staticdir.root': scriptdir},
-        '/static': {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': 'static'},
-        "/favicon.ico": {
-            "tools.staticfile.on": True,
-            "tools.staticfile.filename": os.path.join(scriptdir, 'static', 'favicon.ico')}}
+    dburi = "file://{}?cache=shared".format(os.path.abspath(configuration.get('biblemunger', 'dbpath')))
+    lockableconn = util.LockableSqliteConnection(dburi)
+
+    bib = bible.Bible(lockableconn)
+    if not bib.initialized:
+        bib.addversesfromxml(os.path.abspath(configuration.get('biblemunger', 'bible')))
+
+    if configuration.getboolean('biblemunger', 'wordfilter'):
+        from wordfilter import Wordfilter
+        censor = Wordfilter()
+        filtering = True
+    else:
+        censor = ImpotentCensor()
+        filtering = False
 
     if mode == 'wsgi':
         sys.stdout = sys.stderr
@@ -191,11 +218,25 @@ def application(environ=None, start_response=None):
             'server.socket_port': int(configuration.get('biblemunger', 'port')),
             'server.socket_host': configuration.get('biblemunger', 'server')})
 
-    cherrypy.tree.mount(
-        BibleMungingServer.fromconfig(configuration), '', cpconfig)
+    frontend = FrontEndServer(lockableconn, bib, filtering=filtering)
+    api = ApiServer(lockableconn, bib, censor)
+
+    cherrypy.tree.mount(frontend, '/', {
+        '/': {
+            'tools.mako.directories': os.path.join(scriptdir, 'temple'),
+            'tools.staticdir.root': scriptdir},
+        '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': 'static'},
+        "/favicon.ico": {
+            "tools.staticfile.on": True,
+            "tools.staticfile.filename": os.path.join(scriptdir, 'static', 'favicon.ico')}})
+    cherrypy.tree.mount(api, '/api', {
+        '/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
 
     if mode == 'wsgi':
         return cherrypy.tree(environ, start_response)
     elif mode == 'cherrypy':
+        cherrypy.engine.signals.subscribe()
         cherrypy.engine.start()
         cherrypy.engine.block()

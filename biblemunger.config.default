@@ -1,7 +1,5 @@
 [biblemunger]
 bible = kjv.xml
-apptitle = biblemunger
-appsubtitle = provacative text-replacement in famous literature
 dbpath = biblemunger.sqlite
 server = 127.0.0.1
 # NOTE: 8187 == BIBL
@@ -14,4 +12,3 @@ hearts = feels
 servant = uber driver
 thy salvation = dat ass
 staff = dick
-
