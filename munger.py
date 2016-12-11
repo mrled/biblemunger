@@ -16,17 +16,6 @@ import util   # noqa
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
 
 
-# raise Exception(
-#     "Set up database out of band: recents",
-#     "Favorites should now be stored in the database",
-#     "Move deploymentinfo logic to outside of ApiServer",
-#     "Don't initialize bible in .fromconfig() method",
-#     "Add recent search in client side JS",
-#     "Fill in contents of search and replace boxes with client side JS",
-#     "Should enabling a wordfilter scrub out filtered shit from the database?"
-# )
-
-
 class ImpotentCensor(object):
     """A class which implements Wordfilter's blacklisted() method with one that always returns False"""
 
