@@ -31,16 +31,13 @@ class BibleVerse(object):
 
 class Bible(object):
 
-    def __init__(self, dbconn, tablename='bible'):
+    def __init__(self, lockableconn, tablename='bible'):
         self.tablename = tablename
-        self.connection = dbconn
-
-        curse = self.connection.cursor()
-        curse.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
-        if not curse.fetchone():
-            curse.execute("CREATE TABLE {} (book, chapter, verse, text)".format(self.tablename))
-            self.connection.commit()
-        curse.close()
+        self.connection = lockableconn
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
+            if not dbconn.cursor.fetchone():
+                dbconn.cursor.execute("CREATE TABLE {} (book, chapter, verse, text)".format(self.tablename))
 
     @classmethod
     def parsexml(cls, file):
@@ -56,30 +53,27 @@ class Bible(object):
 
     @property
     def initialized(self):
-        curse = self.connection.cursor()
-        curse.execute("SELECT verse FROM {} LIMIT 1".format(self.tablename))
-        result = curse.fetchone()
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT verse FROM {} LIMIT 1".format(self.tablename))
+            result = dbconn.cursor.fetchone()
         return result is not None
 
     def addverses(self, verses):
-        curse = self.connection.cursor()
-        for verse in verses:
-            curse.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.tablename), (verse.book, verse.chapter, verse.verse, verse.text))
-        self.connection.commit()
-        curse.close()
+        with self.connection as dbconn:
+            for verse in verses:
+                dbconn.cursor.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.tablename), (verse.book, verse.chapter, verse.verse, verse.text))
 
     def addversesfromxml(self, file):
         self.addverses(Bible.parsexml(file))
 
     def search(self, search):
-        curse = self.connection.cursor()
         sql = "SELECT book, chapter, verse, text FROM {} WHERE text LIKE ?".format(self.tablename)
         params = ("%{}%".format(search), )
-        curse.execute(sql, params)
         verses = []
-        for result in curse:
-            verses += [BibleVerse.fromtuple(result)]
-        curse.close()
+        with self.connection as dbconn:
+            dbconn.cursor.execute(sql, params)
+            for result in dbconn.cursor:
+                verses += [BibleVerse.fromtuple(result)]
         return verses
 
     def replace(self, old, new):

@@ -49,6 +49,7 @@ class BibleMungingServerTestCase(unittest.TestCase):
     def setUp(self):
         self.dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
         self.dbconn = util.LockableSqliteConnection(self.dburi)
+        self.bible = bible.Bible(self.dbconn)
 
     def tearDown(self):
         self.dbconn.connection.close()
@@ -60,8 +61,7 @@ class BibleMungingServerTestCase(unittest.TestCase):
             {'search': 'search one', 'replace': 'replace one'},
             {'search': 'search two', 'replace': 'replace two'},
             {'search': 'search tre', 'replace': 'replace tre'}]
-        bib = bible.Bible(self.dbconn.connection)
-        bms = munger.BibleMungingServer(self.dbconn, bib, faves, apptitle, appsubtitle, wordfilter=False)
+        bms = munger.BibleMungingServer(self.dbconn, self.bible, faves, apptitle, appsubtitle, wordfilter=False)
         self.assertEqual(faves, bms.favorite_searches)
         self.assertEqual(apptitle, bms.apptitle)
         self.assertEqual(appsubtitle, bms.appsubtitle)
@@ -69,8 +69,7 @@ class BibleMungingServerTestCase(unittest.TestCase):
 
     def test_object_init_filter(self):
         testword = 'QwertyStringUsedForTestingZxcvb'
-        bib = bible.Bible(self.dbconn.connection)
-        bms = munger.BibleMungingServer(self.dbconn, bib, [], "apptitle", "appsubtitle", wordfilter=True)
+        bms = munger.BibleMungingServer(self.dbconn, self.bible, [], "apptitle", "appsubtitle", wordfilter=True)
         self.assertIn('add_words', dir(bms.wordfilter))
         self.assertFalse(bms.wordfilter.blacklisted(testword))
         bms.wordfilter.add_words([testword])
@@ -78,8 +77,7 @@ class BibleMungingServerTestCase(unittest.TestCase):
 
     def test_initialize_database(self):
         create_table_stmt = "CREATE TABLE recent_searches (search, replace)"
-        bib = bible.Bible(self.dbconn.connection)
-        bms = munger.BibleMungingServer(self.dbconn, bib, [], "app title", "app subtitle", wordfilter=False)
+        bms = munger.BibleMungingServer(self.dbconn, self.bible, [], "app title", "app subtitle", wordfilter=False)
         bms.initialize_database()
         recents_tablename = bms.tablenames['recents']
         with self.dbconn as dbconn:
@@ -88,8 +86,7 @@ class BibleMungingServerTestCase(unittest.TestCase):
         self.assertEqual(result[0], create_table_stmt)
 
     def test_recent_searches(self):
-        bib = bible.Bible(self.dbconn.connection)
-        bms = munger.BibleMungingServer(self.dbconn, bib, [], "app title", "app subtitle", wordfilter=False)
+        bms = munger.BibleMungingServer(self.dbconn, self.bible, [], "app title", "app subtitle", wordfilter=False)
         bms.initialize_database()
         recents = [
             ('search one', 'replace one'),

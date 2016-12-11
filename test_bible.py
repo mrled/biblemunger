@@ -7,11 +7,11 @@ import sqlite3
 import unittest
 
 import bible
+import util
 
 
 class BibleTestCase(unittest.TestCase):
 
-    dburi = 'file:TEST_MEMORY_DB?mode=memory&cache=shared'
     testtable = 'testtable'
     create_table_stmt = "CREATE TABLE testtable (book, chapter, verse, text)"
     testverses = [
@@ -62,13 +62,12 @@ class BibleTestCase(unittest.TestCase):
 """
 
     def setUp(self):
-        self.dbconn = sqlite3.connect(self.dburi, uri=True)
-        self.curse = self.dbconn.cursor()
+        self.dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
+        self.dbconn = util.LockableSqliteConnection(self.dburi)
         self._bible = None
 
     def tearDown(self):
-        self.curse.close()
-        self.dbconn.close()
+        self.dbconn.connection.close()
         self._bible = None
 
     @property
@@ -84,24 +83,25 @@ class BibleTestCase(unittest.TestCase):
 
     def test_bible_init_empty_db(self):
         self.bible
-        self.curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
-        result = self.curse.fetchone()[0]
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
+            result = dbconn.cursor.fetchone()[0]
         self.assertEqual(result, self.create_table_stmt)
 
     def test_bible_init_initialized_db(self):
-        self.curse.execute(self.create_table_stmt)
-        self.dbconn.commit()
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute(self.create_table_stmt)
         self.bible
-        self.curse.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
-        result = self.curse.fetchone()[0]
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
+            result = dbconn.cursor.fetchone()[0]
         self.assertEqual(result, self.create_table_stmt)
 
     def test_bible_search(self):
-        self.curse.execute(self.create_table_stmt)
-        for verse in self.testverses:
-            self.curse.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.testtable), (verse.book, verse.chapter, verse.verse, verse.text))
-        self.dbconn.commit()
-
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute(self.create_table_stmt)
+            for verse in self.testverses:
+                dbconn.cursor.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.testtable), (verse.book, verse.chapter, verse.verse, verse.text))
         testverses = [self.testverses[0], self.testverses[-1]]
         verses = self.bible.search("TikTik")
         self.assertEqual(verses, testverses)
@@ -112,6 +112,7 @@ class BibleTestCase(unittest.TestCase):
 
     def test_bible_addverses(self):
         self.bible.addverses(self.testverses)
-        self.curse.execute("SELECT * FROM {}".format(self.testtable))
-        verses = [bible.BibleVerse.fromtuple(v) for v in self.curse]
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.testtable))
+            verses = [bible.BibleVerse.fromtuple(v) for v in dbconn.cursor]
         self.assertEqual(verses, self.testverses)
