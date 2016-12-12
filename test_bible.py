@@ -103,8 +103,11 @@ class BibleTestCase(unittest.TestCase):
             for verse in self.testverses:
                 dbconn.cursor.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.testtable), (verse.book, verse.chapter, verse.verse, verse.text))
         testverses = [self.testverses[0], self.testverses[-1]]
-        verses = self.bible.search("TikTik")
+        verses = self.bible.search("Tiktik")
         self.assertEqual(verses, testverses)
+
+    # def test_bible_search_case_sensitivity(self):
+    #     raise Exception("TODO: Implement case sensitivity test")
 
     def test_bible_parsexml(self):
         parsedverses = bible.Bible.parsexml(io.StringIO(self.xmlbiblefragment))
