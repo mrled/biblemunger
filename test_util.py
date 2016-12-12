@@ -36,10 +36,18 @@ class DictEncoderTestCase(unittest.TestCase):
 
 class LockableSqliteConnectionTestCase(unittest.TestCase):
 
+    def setUp(self):
+        self.dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
+        self.lockableconn = util.LockableSqliteConnection(self.dburi)
+
+    def tearDown(self):
+        self.lockableconn.connection.close()
+
     def test_lsc(self):
-        dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
-        lockableconn = util.LockableSqliteConnection(dburi)
-        with lockableconn as dbconn:
+        with self.lockableconn as dbconn:
             dbconn.cursor.execute("SELECT 1")
             result = dbconn.cursor.fetchone()[0]
         self.assertEqual(result, 1)
+
+    # def test_locking(self):
+    #     raise Exception("TODO: test the locking behavior somehow")
