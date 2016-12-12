@@ -22,6 +22,9 @@ class ImpotentCensor(object):
     def blacklisted(self, string):
         return False
 
+    def add_words(self, stringArr):
+        return
+
 
 class SavedSearches(object):
 
@@ -112,8 +115,6 @@ class ApiServer(object):
 
 
 class FrontEndServer(object):
-
-    dictencoder = util.DictEncoder()
 
     def __init__(self, lockableconn, bible, filtering=False):
 
