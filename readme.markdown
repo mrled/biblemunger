@@ -32,16 +32,13 @@ If you want to run from Apache, consider using WSGI:
 
 A random list that should probably be pruned:
 
-- Consider refactoring search/replace lists to be simple dictionaries?
 - Use better version stamping system and/or something with the `__version__` attribute
 - Allow replacement of multiple things at once.
   (Would love to be able to replace "sons" and "daughters" at the same time, for example.)
 - Handle case, punctuation, whitespace more intuitively
-- Should use a Mako page filter, rather than filtering on each expression
 - Should filter on input side, in bmweb.py, in addition to output side, in index.mako. 
 - Reverse the sorting of the recent searches
 - More consistent layout would be nice, CSS is hard
-- Paginate recent searches, or find another way to deal with potentially hundreds
 - Show most searched
 
 ### BibleMunger 2.0: A big update
@@ -89,15 +86,19 @@ Things that can be done at any time
 
 Misc to do list and minor changes:
 
+- FIX TESTS
 - Add a spinner for long loads. If you search a very common word rn like "God" it will take a couple of seconds
 - Rip out jQuery
+- Figure out a way to populate the favorite searches
+- Update recent searches whenever we search
+- How to paginate the recent searches list? Or how to prune it?
 
-#### Redesigning the interaction model
 
-- Hitting the `[Munge]` button will update browser URL bar with [`history.pushState()`](https://developer.mozilla.org/en-US/docs/Web/API/History_API)
-- `history.pushState()` does *not* load what is added to the history, or even check that it exists
-- I'll still use server-generated HTML, but that generation will only do the stuff like setting `<og:description>` that can't be done dynamically in JavaScript after the page has been downloaded
-- Everything that can bre done dynamically in JS should be, including loading a new batch of verses
+Get a mocked up single page app to Ben so he can play with it
+
+- Should return dummy data (like maybe the same 5 verses for all search/replace ops)
+- Should not require the backend to be running
+- Running locally might be tough but maybe as a GH page? Could even use the gh-pages branch of this repo... then all changes are visible instantly
 
 ### BibleMunger 2.1: MadLibs
 
