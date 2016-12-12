@@ -110,8 +110,36 @@ function applyHashParams() {
     }
 }
 
-window.onload = function() { 
+/* Get a SavedSearches result
+ * uri: a URI (relative is fine) that the SavedSearches object is mounted to
+ * elemtnId: the ID of an element which we will replace with the search results
+ */
+function getPreviousSearchReplacePairs(uri, elementId, failureMsg) {
+    var failureHtml = "<p>"+failureMsg+"</p>";
+    $.ajax({url: uri}).done(function(pairs) {
+        var html = "";
+        if (pairs.length > 0) {
+            html += "<ul class='noBullets'>";
+            pairs.forEach(function(pair) {
+                html += "<li>";
+                html += "<a href='#search="+pair.search+"&replace="+pair.replace+"'>";
+                html += pair.search+" ⇒ "+pair.replace;
+                html += "</a>";
+                html += "</li>";
+            });
+            html += "</ul>";
+        }
+        else {
+            html = failureHtml
+        }
+        document.getElementById(elementId).innerHTML = html;
+    });
+}
+
+window.onload = function() {
     applyHashParams();
+    getPreviousSearchReplacePairs('api/recents', 'searchRecentResults', 'Sorry, no recent searches to show you :(');
+    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults', 'Sorry, no favorite searches to show you :(');
 };
 window.onhashchange = function() {
     applyHashParams();
