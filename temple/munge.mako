@@ -13,7 +13,7 @@
   ## NOTE: Facebook will ignore any text that contains markup here :( so we cannot embolden our munged terms :(:(
   <meta property="og:description" content="${exreplacement if exreplacement else appsubtitle}" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
-  <script src="https://code.jquery.com/jquery-3.1.1.min.js" />
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 </head>
 <body><div id="bodyContent">
 
@@ -63,18 +63,16 @@
 
 <div class="clearLeft">
 
-<div id="searchSubsection">
-  <h2>Search and <span class="strikeThru">destroy</span> replace</h2>
-  <div id="searchPseudoForm">
-    <span class="labelAndBox" id="searchBox">Search: <input type=text name="search" size=20 autofocus="true" autocapitalize="off" value="" /></span>
-    <span class="labelAndBox" id="replaceBox">Replace: <input type=text name="replace" size=20 autocapitalize="off" value="" /></span>
-    <span id="mungeButton"><button onclick="javascript:submitSearchReplace()">Munge</button></span>
+  <div id="searchSubsection">
+    <h2>Search and <span class="strikeThru">destroy</span> replace</h2>
+    <form id="mungerForm" method=GET action="javascript:submitSearchReplace()">
+      <span class="labelAndBox" id="searchField">Search: <input type=text name="search" id="searchBox" size=20 autofocus="true" autocapitalize="off" value="" /></span>
+      <span class="labelAndBox" id="replaceField">Replace: <input type=text name="replace" id="replaceBox" size=20 autocapitalize="off" value="" /></span>
+      <span id="mungeButton"><input type=submit value="Munge" /></span>
+    </form>
   </div>
-</div>
 
-<div id="results"></div>
-
-<a href="https://github.com/mrled/biblemunger"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"></a>
+  <div id="results"></div>
 
 </div>
 

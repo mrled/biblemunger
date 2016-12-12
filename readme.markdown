@@ -73,6 +73,7 @@ Things that can be done at any time
     - How to test CherryPy apps without running the full server: https://bitbucket.org/Lawouach/cherrypy-recipes/src/1a27059966e962be52b2abd91e9709c3ee63cf2d/testing/unit/serverless/test.py?at=default&fileviewer=file-view-default
 - Handle results page
     - I don't like pagination, but that is a naive solution to the current problem of very large pages if you try to text-replace on "the"
+    - Idea from Ben: use infinite scrolling, but also provide metrics like "X of Y results have been loaded" and a button to load all remaining verses
 - Add a reading mode to the app
     - This mode just reads the bible, can go directly to books/chapters/verses, whatever
 - Allow creating a filter for all operations
@@ -82,6 +83,14 @@ Things that can be done at any time
     - Perhaps have a `Verse Text (Book Chapter:Verse)` type format. Make "Book" and "Chapter" clickable, and when clicked, get the larger context but with the same replacements
     - Also consider having `Next`/`Back` buttons on each book/chapter/verse where appropriate
     - Obviously this goes hand in hand with a browse mode
+- Keep track of how many times each search/replace pair gets loaded.
+    - Can we keep track of unique visits without saving tracking data like IP addresses or cookies?
+
+
+Misc to do list and minor changes:
+
+- Add a spinner for long loads. If you search a very common word rn like "God" it will take a couple of seconds
+- Rip out jQuery
 
 #### Redesigning the interaction model
 
@@ -100,3 +109,8 @@ Things that can be done at any time
 - MadLibs sets have two modes:
     - edit mode looks like the normal search/replacement mode (the computer-generated madlibs would still expose this mode too)
     - play mode has two screens; the first asks for words in each required catagory, and the second fills them in for you; I'm figuring these screens would have large text UIs?
+
+### Far future?
+
+- Other translations? KJV seems especially funny but others might be more familiar to people
+- Other texts altogether? Would be cool if there were a good way to have it be extensible, but most other texts don't have a book/chapter/verse so nicely set out for us so I'm not sure how it would work.
