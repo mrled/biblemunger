@@ -4,12 +4,11 @@ import xml.etree.ElementTree as ET
 
 class BibleVerse(object):
 
-    def __init__(self, book, chapter, verse, text, markedup=None):
+    def __init__(self, book, chapter, verse, text):
         self.book = book
         self.chapter = int(chapter)
         self.verse = int(verse)
         self.text = text
-        self.markedup = markedup if markedup else text
 
     @classmethod
     def fromtuple(cls, tup):
@@ -76,11 +75,3 @@ class Bible(object):
             for result in dbconn.cursor:
                 verses += [BibleVerse.fromtuple(result)]
         return verses
-
-    def replace(self, old, new):
-        results = self.search(old)
-        for verse in results:
-            f = re.IGNORECASE
-            verse.text = re.sub(old, new, verse.text, flags=f)
-            verse.markedup = re.sub(old, '*****{}******'.format(new), verse.text, flags=f)
-        return results
