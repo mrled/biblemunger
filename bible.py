@@ -71,6 +71,7 @@ class Bible(object):
         params = ("%{}%".format(search), )
         verses = []
         with self.connection as dbconn:
+            dbconn.cursor.execute("PRAGMA case_sensitive_like = ON;")
             dbconn.cursor.execute(sql, params)
             for result in dbconn.cursor:
                 verses += [BibleVerse.fromtuple(result)]
