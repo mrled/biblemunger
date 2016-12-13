@@ -110,8 +110,11 @@ class LockableSqliteConnection(object):
     def __exit__(self, type, value, traceback):
         self.lock.release()
         self.connection.commit()
-        self.cursor.close()
-        self.cursor = None
+        # I've seen self.cursor be None before, but I'm not sure why
+        # Attempting to call a method on None will throw an exception, though, so we'll check for it first
+        if self.cursor is not None:
+            self.cursor.close()
+            self.cursor = None
 
     def close(self):
         """Close the underlying sqlite connection.
