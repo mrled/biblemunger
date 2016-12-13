@@ -64,7 +64,7 @@ class DictEncoder(json.JSONEncoder):
 class LockableSqliteConnection(object):
     """A class, usable as an argument to a 'with' statement, that has a sqlite3.Connection object, a sqlite3.Cursor object, and a threading.Lock object
 
-    When the 'with' statement is begun, the internal cursor object is allocated, and the internal lock is acquired. When the 'with' statements terminates, the internal cursor object is closed, the internal connection object is committed, and the internal lock object is released. Exiting the 'with' statement does *not* close the connection; the caller is responsible for this.
+    When the 'with' statement is begun, the internal cursor object is allocated, and the internal lock is acquired. When the 'with' statements terminates, the internal cursor object is closed, the internal connection object is committed, and the internal lock object is released. Exiting the 'with' statement does *not* close the connection; the caller is responsible for this, but we do provide a convenience method to do it.
 
     Usable like so:
 
@@ -112,3 +112,12 @@ class LockableSqliteConnection(object):
         self.connection.commit()
         self.cursor.close()
         self.cursor = None
+
+    def close(self):
+        """Close the underlying sqlite connection.
+
+        Waits for current operations to finish. Renders the object basically useless.
+        """
+        self.lock.acquire()
+        self.connection.close()
+        self.lock.release()

@@ -41,7 +41,7 @@ class LockableSqliteConnectionTestCase(unittest.TestCase):
         self.lockableconn = util.LockableSqliteConnection(self.dburi)
 
     def tearDown(self):
-        self.lockableconn.connection.close()
+        self.lockableconn.close()
 
     def test_lsc(self):
         with self.lockableconn as dbconn:

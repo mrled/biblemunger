@@ -24,7 +24,7 @@ class ApiServerTestCase(unittest.TestCase):
         self.apiserver = munger.ApiServer(self.dbconn, self.bible, self.censor)
 
     def tearDown(self):
-        self.dbconn.connection.close()
+        self.dbconn.close()
 
     def test_object_init(self):
         self.assertIsInstance(self.apiserver.recents, munger.SavedSearches)
@@ -63,7 +63,7 @@ class SavedSearchesTestCase(unittest.TestCase):
             dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablecensored))
 
     def tearDown(self):
-        self.dbconn.connection.close()
+        self.dbconn.close()
 
     def test_GET(self):
         result_empty = self.freespeech.GET()

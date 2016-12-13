@@ -67,7 +67,7 @@ class BibleTestCase(unittest.TestCase):
         self._bible = None
 
     def tearDown(self):
-        self.dbconn.connection.close()
+        self.dbconn.close()
         self._bible = None
 
     @property
