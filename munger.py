@@ -30,10 +30,11 @@ class SavedSearches(object):
 
     exposed = True
 
-    def __init__(self, lockableconn, tablename, censor):
+    def __init__(self, lockableconn, tablename, censor, writeable=True):
         self.connection = lockableconn
         self.tablename = tablename
         self.censor = censor
+        self.writeable = bool(writeable)
 
     @cherrypy.tools.json_out()
     def GET(self):
@@ -43,15 +44,18 @@ class SavedSearches(object):
         return results or []
 
     def PUT(self, search, replace):
-        if self.censor.blacklisted(replace):
-            return
-        with self.connection as dbconn:
-            testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
-            insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
-            params = (search, replace)
-            dbconn.cursor.execute(testsql, params)
-            if dbconn.cursor.fetchall() == []:
-                dbconn.cursor.execute(insertsql, params)
+        if self.writeable:
+            if self.censor.blacklisted(replace):
+                return
+            with self.connection as dbconn:
+                testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
+                insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
+                params = (search, replace)
+                dbconn.cursor.execute(testsql, params)
+                if dbconn.cursor.fetchall() == []:
+                    dbconn.cursor.execute(insertsql, params)
+        else:
+            raise cherrypy.HTTPError(403, "This service is read-only")
 
 
 class VersionApi(object):
@@ -96,7 +100,7 @@ class ApiServer(object):
         self.initialize_database()
 
         self.recents = SavedSearches(self.connection, self.tablenames['recents'], censor)
-        self.favorites = SavedSearches(self.connection, self.tablenames['favorites'], censor)
+        self.favorites = SavedSearches(self.connection, self.tablenames['favorites'], censor, writeable=False)
         self.version = VersionApi()
         self.search = BibleSearchApi(bible)
 

@@ -1,6 +1,7 @@
 import json
 import unittest
 
+import cherrypy
 from wordfilter import Wordfilter
 
 import bible
@@ -53,25 +54,24 @@ class SavedSearchesTestCase(unittest.TestCase):
     def setUp(self):
         self.dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
         self.dbconn = util.LockableSqliteConnection(self.dburi)
-        self.tablefreespeech = "freespeech"
-        self.tablecensored = "censored"
+        self.tablename = "testtable"
         self.testblasphemy = "BlasphemousGraphemesQwertyuiop"
-        self.freespeech = munger.SavedSearches(self.dbconn, self.tablefreespeech, munger.ImpotentCensor())
-        self.censored = munger.SavedSearches(self.dbconn, self.tablecensored, Wordfilter())
+        # self.freespeech = munger.SavedSearches(self.dbconn, self.tablefreespeech, munger.ImpotentCensor())
+        # self.censored = munger.SavedSearches(self.dbconn, self.tablecensored, Wordfilter())
         with self.dbconn as dbconn:
-            dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablefreespeech))
-            dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablecensored))
+            dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablename))
 
     def tearDown(self):
         self.dbconn.close()
 
     def test_GET(self):
-        result_empty = self.freespeech.GET()
+        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor())
+        result_empty = ss.GET()
         with self.dbconn as dbconn:
-            dbconn.cursor.execute("INSERT INTO {} VALUES ('search one', 'replace one')".format(self.tablefreespeech))
-            dbconn.cursor.execute("INSERT INTO {} VALUES ('search two', 'replace two')".format(self.tablefreespeech))
-            dbconn.cursor.execute("INSERT INTO {} VALUES ('search tre', 'replace tre')".format(self.tablefreespeech))
-        result_full = self.freespeech.GET()
+            dbconn.cursor.execute("INSERT INTO {} VALUES ('search one', 'replace one')".format(self.tablename))
+            dbconn.cursor.execute("INSERT INTO {} VALUES ('search two', 'replace two')".format(self.tablename))
+            dbconn.cursor.execute("INSERT INTO {} VALUES ('search tre', 'replace tre')".format(self.tablename))
+        result_full = ss.GET()
         expected_full = json.loads("""[{"replace": "replace one", "search": "search one"}, {"replace": "replace two", "search": "search two"}, {"replace": "replace tre", "search": "search tre"}]""")
         self.assertEqual(result_empty, [])
         self.assertEqual(result_full, expected_full)
@@ -80,11 +80,12 @@ class SavedSearchesTestCase(unittest.TestCase):
         pairs = [
             ('something', self.testblasphemy),
             ('something2', 'not blasphemy')]
-        self.freespeech.censor.add_words([self.testblasphemy])
+        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor())
+        ss.censor.add_words([self.testblasphemy])
         for pair in pairs:
-            self.freespeech.PUT(pair[0], pair[1])
+            ss.PUT(pair[0], pair[1])
         with self.dbconn as dbconn:
-            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablefreespeech))
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
             result = dbconn.cursor.fetchall()
         self.assertEqual(pairs, result)
 
@@ -92,13 +93,27 @@ class SavedSearchesTestCase(unittest.TestCase):
         pairs = [
             ('something', self.testblasphemy),
             ('something2', 'not blasphemy')]
-        self.censored.censor.add_words([self.testblasphemy])
+        ss = munger.SavedSearches(self.dbconn, self.tablename, Wordfilter())
+        ss.censor.add_words([self.testblasphemy])
         for pair in pairs:
-            self.censored.PUT(pair[0], pair[1])
+            ss.PUT(pair[0], pair[1])
         with self.dbconn as dbconn:
-            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablecensored))
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
             result = dbconn.cursor.fetchall()
         self.assertEqual([pairs[1]], result)
+
+    def test_PUT_readonly(self):
+        exsearch = 'something'
+        exreplace = 'whatever'
+        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor(), writeable=False)
+        with self.assertRaises(cherrypy.HTTPError):
+            ss.PUT(exsearch, exreplace)
+        with self.dbconn as dbconn:
+            sql = "SELECT * FROM {} WHERE search=? AND replace=?".format(self.tablename)
+            param = (exsearch, exreplace)
+            dbconn.cursor.execute(sql, param)
+            result = dbconn.cursor.fetchall()
+        self.assertEqual(result, [])
 
 # class MiscellaneousTestCase(unittest.TestCase):
 
