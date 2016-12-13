@@ -45,9 +45,6 @@ A random list that should probably be pruned:
 
 - Create text API
     - Bible converted to rows of SQL in database w/ columns: textId (e.g. KJV), bookId (e.g. Genesis), chapterId (e.g. 1), verseId (e.g. 1), data (e.g. "In the beginning...")
-- Put all interaction logic in JS
-    - Do text replacement in JavaScript (this obviates the command line tool but I think that's ok)
-    - Have client JS also set the search/replace box text
 - Have the UI also talk to the database
     - No longer use URLs to save replacements (this wouldn't work well for multiple replacements anyway)
     - Instead, save replacement sets under a single ID and do something like http://example.com/munge?id=ReplacementSetId or whatever
@@ -56,9 +53,6 @@ A random list that should probably be pruned:
     - Alternatively: have a code for replacements and pass that in the URL (perhaps base64 encoded? or is there something more efficient?), but then have a button to generate a shorter version of the link. This lets users work on their replacement set and only stores an ID in the database when they actually want to share it
     - That keeps the old-style behavior where you could just copy the URL in the address bar and send it to someone and have it work, as well
 - Update UI to allow for substituting multiple things at once
-- Reconsider how we set up databases
-    - Should that happen out of band, or as part of the __init__() method?
-    - need to set up favorites in database, and initialize it out of band as well
 
 
 Things that can be done at any time
@@ -86,10 +80,8 @@ Things that can be done at any time
 
 Misc to do list and minor changes:
 
-- FIX TESTS
 - Add a spinner for long loads. If you search a very common word rn like "God" it will take a couple of seconds
 - Rip out jQuery
-- Figure out a way to populate the favorite searches
 - Update recent searches whenever we search
 - How to paginate the recent searches list? Or how to prune it?
 

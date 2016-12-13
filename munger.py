@@ -1,4 +1,4 @@
-import configparser
+import json
 import os
 import re
 import sys
@@ -154,31 +154,6 @@ class FrontEndServer(object):
             'filterinuse':    self.filtering}
 
 
-def configure():
-    """Get biblemunger configuration
-
-    NOTE: It's not currently possible to define more than 1 favorite replacement set with the same search term
-    That is, if you put "search = replace1" and "search = replace2" in the config file, only the second will come through
-
-    TODO: allow definition of multiple replacement sets with the same search term
-    """
-
-    global scriptdir
-
-    # The first of these, the default config file, must exist (and is in git)
-    # The second is an optional config file that can be provided by the user
-    # NOTE: We want the config files to work even for WSGI, so we can't use a command line parameter for the user's config
-    defaultconfig = os.path.join(scriptdir, 'biblemunger.config.default')
-    userconfig = os.path.join(scriptdir, 'biblemunger.config')
-
-    configuration = configparser.ConfigParser()
-    configuration.readfp(open(defaultconfig))
-    if os.path.exists(userconfig):
-        configuration.readfp(open(userconfig))
-
-    return configuration
-
-
 def application(environ=None, start_response=None):
     """Webserver setup code
 
@@ -191,15 +166,23 @@ def application(environ=None, start_response=None):
 
     mode = 'wsgi' if environ and start_response else 'cherrypy'
 
-    configuration = configure()
-    dburi = "file://{}?cache=shared".format(os.path.abspath(configuration.get('biblemunger', 'dbpath')))
+    configfile = os.path.join(scriptdir, 'biblemunger.config.json')
+    with open(configfile) as f:
+        configuration = json.load(f)
+
+    if os.name == 'nt':
+        dburitemplate = "file:///{}?cache=shared"
+    else:
+        dburitemplate = "file:///{}?cache=shared"
+    dburi = dburitemplate.format(os.path.abspath(configuration['dbpath']))
+
     lockableconn = util.LockableSqliteConnection(dburi)
 
     bib = bible.Bible(lockableconn)
     if not bib.initialized:
-        bib.addversesfromxml(os.path.abspath(configuration.get('biblemunger', 'bible')))
+        bib.addversesfromxml(os.path.abspath(configuration['bible']))
 
-    if configuration.getboolean('biblemunger', 'wordfilter'):
+    if configuration['wordfilter']:
         from wordfilter import Wordfilter
         censor = Wordfilter()
         filtering = True
@@ -212,11 +195,13 @@ def application(environ=None, start_response=None):
         cherrypy.config.update({'environment': 'embedded'})
     elif mode == 'cherrypy':
         cherrypy.config.update({
-            'server.socket_port': int(configuration.get('biblemunger', 'port')),
-            'server.socket_host': configuration.get('biblemunger', 'server')})
+            'server.socket_port': configuration['port'],
+            'server.socket_host': configuration['server']})
 
     frontend = FrontEndServer(lockableconn, bib, filtering=filtering)
     api = ApiServer(lockableconn, bib, censor)
+    for fave in configuration['favorites']:
+        api.favorites.addpair(fave['search'], fave['replace'])
 
     cherrypy.tree.mount(frontend, '/', {
         '/': {

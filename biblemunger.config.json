@@ -1,0 +1,13 @@
+{
+    "bible": "kjv.xml",
+    "dbpath": "biblemunger.sqlite",
+    "server": "127.0.0.1",
+    "port": 8187,
+    "wordfilter": true,
+    "favorites": [
+        {"search": "hearts", "replace": "feels"},
+        {"search": "servant", "replace": "uber driver"},
+        {"search": "thy salvation", "replace": "dat ass"},
+        {"search": "staff", "replace": "dick"}
+    ]
+}
