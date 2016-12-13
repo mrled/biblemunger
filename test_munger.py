@@ -77,21 +77,28 @@ class SavedSearchesTestCase(unittest.TestCase):
         self.assertEqual(result_full, expected_full)
 
     def test_PUT_freespeech(self):
+        pairs = [
+            ('something', self.testblasphemy),
+            ('something2', 'not blasphemy')]
         self.freespeech.censor.add_words([self.testblasphemy])
-        self.freespeech.PUT('something', self.testblasphemy)
-        self.freespeech.PUT('something2', 'not blasphemy')
-        result_freespeech = self.freespeech.GET()
-        expected_freespeech = '[{"search": "something", "replace": "%s"}, {"search": "something2", "replace": "not blasphemy"}]' % self.testblasphemy
-        self.assertEqual(result_freespeech, expected_freespeech)
+        for pair in pairs:
+            self.freespeech.PUT(pair[0], pair[1])
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablefreespeech))
+            result = dbconn.cursor.fetchall()
+        self.assertEqual(pairs, result)
 
     def test_PUT_censored(self):
+        pairs = [
+            ('something', self.testblasphemy),
+            ('something2', 'not blasphemy')]
         self.censored.censor.add_words([self.testblasphemy])
-        self.censored.PUT('something', self.testblasphemy)
-        self.censored.PUT('something2', 'not blasphemy')
-        result_censored = self.censored.GET()
-        expected_censored = '[{"search": "something2", "replace": "not blasphemy"}]'
-        self.assertEqual(result_censored, expected_censored)
-
+        for pair in pairs:
+            self.censored.PUT(pair[0], pair[1])
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablecensored))
+            result = dbconn.cursor.fetchall()
+        self.assertEqual([pairs[1]], result)
 
 # class MiscellaneousTestCase(unittest.TestCase):
 

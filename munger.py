@@ -50,7 +50,7 @@ class SavedSearches(object):
             insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
             params = (search, replace)
             dbconn.cursor.execute(testsql, params)
-            if dbconn.cursor.fetchall() is None:
+            if dbconn.cursor.fetchall() == []:
                 dbconn.cursor.execute(insertsql, params)
 
 
