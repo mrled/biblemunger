@@ -8,23 +8,32 @@ p {
 	line-height: 1.5;
 	font-size: 5vh;
 }
-.text-container {
+.content-area {
 	width: 50%;
-	margin: 10% auto 2vh auto;
-	padding: 0.25em 0 0.09em 4em;
+	margin: 5% auto 0 auto;
+	padding: 0;
 	border-left: 6px double #A10104;
+}
+.text-container {
+	padding: 1em 0 0 6%;
 }
 p.scripture,
 p.reference {
 	font-family: 'Eczar', Georgia, serif;
 }
+p.scripture {
+	margin-bottom: 0.5em;
+}
+p.reference {
+	margin: 0 0 1.5em 0;
+}
 p.scripture:first-child:first-letter {
 	float: left;
     color: #A10104;
-    font-size: 15vh;
+    font-size: 200px;
     line-height: 1;
-    margin-top: -1.4vh;
-    padding-right: 0.1em;
+    margin-top: 0;
+    padding-right: 0.15em;
     font-family: 'Dearest Outline',Georgia;
     text-transform: uppercase;
 }
@@ -35,20 +44,38 @@ p.reference {
 p.reference:before {
 	content: "— ";
 }
+p.substitution {
+	font-size: 1em;
+	font-style: italic;
+	font-weight: 400;
+	display: table;
+	margin: 0;
+	padding: 5px 30px;
+}
+p.substitution span {
+	font-weight: 300;
+	margin-right: 0.4em;
+}
+p.substitution em:after {
+	content: " »";
+	color: #A10104;
+	margin: 0 0.2em;
+}
 .actions {
-	margin: 0 25%;
+	margin: 0;
 }
 .std-button {
 	color: #A10104;
 	padding: 6px 30px 2px 30px;
 	border: 0.5px solid #A10104;
+	border-left: 0 none;
 	background: transparent;
 	font-family: 'Eczar', serif;
 	font-size: 1em;
 	font-weight: 700;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
-	border-radius: 15px 0 5px 0;
+	border-radius: 0 0 15px 0;
 	-webkit-transition: all 75ms linear;
 	-moz-transition: all 75ms linear;
 	-ms-transition: all 75ms linear;
