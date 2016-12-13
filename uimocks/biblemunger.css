@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css?family=Eczar:400,700|Source+Sans+Pro:300,400,700');
+body {
+	background: #EFEBD8;
+	color: #1A160D;
+	font-family: 'Source Sans Pro',Helvetica,sans-serif;
+}
+p {
+	line-height: 1.5;
+	font-size: 5vh;
+}
+.text-container {
+	width: 50%;
+	margin: 10% auto 2vh auto;
+	padding: 0.25em 0 0.09em 4em;
+	border-left: 6px double #A10104;
+}
+p.scripture,
+p.reference {
+	font-family: 'Eczar', Georgia, serif;
+}
+p.scripture:first-child:first-letter {
+	float: left;
+    color: #A10104;
+    font-size: 15vh;
+    line-height: 1;
+    margin-top: -1.4vh;
+    padding-right: 0.1em;
+    font-family: 'Dearest Outline',Georgia;
+    text-transform: uppercase;
+}
+p.reference {
+	font-style: italic;
+	font-size: 3vh;
+}
+p.reference:before {
+	content: "— ";
+}
+.actions {
+	margin: 0 25%;
+}
+.std-button {
+	color: #A10104;
+	padding: 6px 30px 2px 30px;
+	border: 0.5px solid #A10104;
+	background: transparent;
+	font-family: 'Eczar', serif;
+	font-size: 1em;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	border-radius: 15px 0 5px 0;
+	-webkit-transition: all 75ms linear;
+	-moz-transition: all 75ms linear;
+	-ms-transition: all 75ms linear;
+	-o-transition: all 75ms linear;
+	transition: all 75ms linear;
+}
+.std-button:hover {
+	border-width: 3px;
+	cursor: pointer;
+}
