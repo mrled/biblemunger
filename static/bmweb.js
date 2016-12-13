@@ -27,17 +27,44 @@ function toggleHideId(Id) {
     }
 }
 
+function toggleHideFavorites() {
+    toggleHideId('searchFavorites');
+    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults');
+}
+
+function toggleHideRecents() {
+    toggleHideId('searchRecents');
+    getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
+}
+
 function searchReplace(search, replace) {
+    // Check if there have been any updates to the favorites list whenver we search
+    // (We check for recents later)
+    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults');
+
     var wrappedReplace = "<span class='munged'>"+replace+"</span>";
     $.ajax({url: "api/search/" + search}).done(function(verses) {
         var newResults = ""
         newResults += "<div id='results'>";
         newResults += "<h2>"+search+" ⇒ "+replace+"</h2>";
         newResults += "<table border=0 cellspacing=5 cellpadding=5 align='CENTER'>";
+        var foundVerse = false;
         verses.forEach(function(verse) {
+            foundVerse = true;
             mungedText = verse.text.replace(search, wrappedReplace);
             newResults += "<tr><td>"+verse.book+" "+verse.chapter+":"+verse.verse+"</td><td>"+mungedText+"</td></tr>";
         });
+
+        if (foundVerse) {
+            // Only add a search to the recents list if it had results, & check for a new recent afterwards
+            $.ajax({url: "/api/recents/"+search+"/"+replace+"/", method: "PUT"}).done(function(data) {
+                getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
+            });
+        }
+        else {
+            getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
+        }
+
         newResults += "</table>";
         newResults += "</div>";
         document.getElementById("results").innerHTML = newResults;
@@ -115,7 +142,6 @@ function applyHashParams() {
  * elemtnId: the ID of an element which we will replace with the search results
  */
 function getPreviousSearchReplacePairs(uri, elementId, failureMsg) {
-    var failureHtml = "<p>"+failureMsg+"</p>";
     $.ajax({url: uri}).done(function(pairs) {
         var html = "";
         if (pairs.length > 0) {
@@ -129,17 +155,14 @@ function getPreviousSearchReplacePairs(uri, elementId, failureMsg) {
             });
             html += "</ul>";
         }
-        else {
-            html = failureHtml
-        }
         document.getElementById(elementId).innerHTML = html;
     });
 }
 
 window.onload = function() {
     applyHashParams();
-    getPreviousSearchReplacePairs('api/recents', 'searchRecentResults', 'Sorry, no recent searches to show you :(');
-    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults', 'Sorry, no favorite searches to show you :(');
+    getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
+    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults');
 };
 window.onhashchange = function() {
     applyHashParams();

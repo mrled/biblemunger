@@ -66,19 +66,19 @@
   <h2>Suggestions</h2>
   <p>Can't think of anything to search for?</p>
   <p>
-    <input type="button" value="Show Favorite Searches" onclick="toggleHideId('searchFavorites');" />
-    <input type="button" value="Show Recent Searches" onclick="toggleHideId('searchRecents');" />
+    <input type="button" value="Show Favorite Searches" onclick="toggleHideFavorites();" />
+    <input type="button" value="Show Recent Searches" onclick="toggleHideRecents();" />
   </p>
 
   <div id="searchFavorites">
-    <script>toggleHideId('searchFavorites')</script>
+    <script>toggleHideFavorites()</script>
     <p>These are some of my favorites:</p>
     <div id="searchFavoriteResults">
       <p>Sorry, no favorite searches to show you :(</p>
     </div>
   </div>
   <div id="searchRecents">    
-    <script>toggleHideId('searchRecents')</script>
+    <script>toggleHideRecents()</script>
     <p>Here are some recent searches by users:</p>
     <div id="searchRecentResults">
       <p>Sorry, no recent searches to show you :(</p>
