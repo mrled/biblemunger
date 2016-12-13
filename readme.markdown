@@ -42,18 +42,23 @@ The configuration file is in the loathesome JSON format, because I am lazy. Ther
 A random list that should probably be pruned:
 
 - Use better version stamping system and/or something with the `__version__` attribute
-- Allow replacement of multiple things at once.
-  (Would love to be able to replace "sons" and "daughters" at the same time, for example.)
 - Handle case, punctuation, whitespace more intuitively
-- Should filter on input side, in bmweb.py, in addition to output side, in index.mako. 
+- Should filter on input side, in bmweb.py, in addition to output side, in index.mako. That is, filter out any HTML in a search before it gets wrote to the DB.
 - Reverse the sorting of the recent searches
 - More consistent layout would be nice, CSS is hard
 - Show most searched
+- Add a spinner for long loads. If you search a very common word rn like "God" it will take a couple of seconds
+- How to paginate the recent searches list? Or how to prune it?
+- Tests
+    - Calculate test coverage
+    - Write tests until I hit 100% coverage
+    - How to test CherryPy apps: http://docs.cherrypy.org/en/latest/advanced.html#testing-your-application
+    - How to test CherryPy apps without running the full server: https://bitbucket.org/Lawouach/cherrypy-recipes/src/1a27059966e962be52b2abd91e9709c3ee63cf2d/testing/unit/serverless/test.py?at=default&fileviewer=file-view-default
+    - Write integrations tests for the backend
+    - Also, test the frontend
 
 ### BibleMunger 2.0: A big update
 
-- Create text API
-    - Bible converted to rows of SQL in database w/ columns: textId (e.g. KJV), bookId (e.g. Genesis), chapterId (e.g. 1), verseId (e.g. 1), data (e.g. "In the beginning...")
 - Have the UI also talk to the database
     - No longer use URLs to save replacements (this wouldn't work well for multiple replacements anyway)
     - Instead, save replacement sets under a single ID and do something like http://example.com/munge?id=ReplacementSetId or whatever
@@ -62,15 +67,6 @@ A random list that should probably be pruned:
     - Alternatively: have a code for replacements and pass that in the URL (perhaps base64 encoded? or is there something more efficient?), but then have a button to generate a shorter version of the link. This lets users work on their replacement set and only stores an ID in the database when they actually want to share it
     - That keeps the old-style behavior where you could just copy the URL in the address bar and send it to someone and have it work, as well
 - Update UI to allow for substituting multiple things at once
-
-
-Things that can be done at any time
-
-- Tests
-    - Calculate test coverage
-    - Write tests until I hit 100% coverage
-    - How to test CherryPy apps: http://docs.cherrypy.org/en/latest/advanced.html#testing-your-application
-    - How to test CherryPy apps without running the full server: https://bitbucket.org/Lawouach/cherrypy-recipes/src/1a27059966e962be52b2abd91e9709c3ee63cf2d/testing/unit/serverless/test.py?at=default&fileviewer=file-view-default
 - Handle results page
     - I don't like pagination, but that is a naive solution to the current problem of very large pages if you try to text-replace on "the"
     - Idea from Ben: use infinite scrolling, but also provide metrics like "X of Y results have been loaded" and a button to load all remaining verses
@@ -85,21 +81,10 @@ Things that can be done at any time
     - Obviously this goes hand in hand with a browse mode
 - Keep track of how many times each search/replace pair gets loaded.
     - Can we keep track of unique visits without saving tracking data like IP addresses or cookies?
-
-
-Misc to do list and minor changes:
-
-- Add a spinner for long loads. If you search a very common word rn like "God" it will take a couple of seconds
-- Rip out jQuery
-- Update recent searches whenever we search
-- How to paginate the recent searches list? Or how to prune it?
-
-
-Get a mocked up single page app to Ben so he can play with it
-
-- Should return dummy data (like maybe the same 5 verses for all search/replace ops)
-- Should not require the backend to be running
-- Running locally might be tough but maybe as a GH page? Could even use the gh-pages branch of this repo... then all changes are visible instantly
+- Get a mocked up single page app to Ben so he can play with it
+    - Should return dummy data (like maybe the same 5 verses for all search/replace ops)
+    - Should not require the backend to be running
+    - Running locally might be tough but maybe as a GH page? Could even use the gh-pages branch of this repo... then all changes are visible instantly
 
 ### BibleMunger 2.1: MadLibs
 
