@@ -56,6 +56,16 @@ class SavedSearchesTestCase(unittest.TestCase):
         self.dbconn = util.LockableSqliteConnection(self.dburi)
         self.tablename = "testtable"
         self.testblasphemy = "BlasphemousGraphemesQwertyuiop"
+        self.wordfilter = Wordfilter()
+        self.wordfilter.add_words([self.testblasphemy])
+
+        self.pairs = {
+            'normal': ('something', 'not blasphemy'),
+            'blasph': ('whatever', self.testblasphemy)}
+        self.tuplepairs = {
+            'normal': [self.pairs['normal']],
+            'blasph': [self.pairs['normal'], self.pairs['blasph']]}
+
         # self.freespeech = munger.SavedSearches(self.dbconn, self.tablefreespeech, munger.ImpotentCensor())
         # self.censored = munger.SavedSearches(self.dbconn, self.tablecensored, Wordfilter())
         with self.dbconn as dbconn:
@@ -77,44 +87,67 @@ class SavedSearchesTestCase(unittest.TestCase):
         self.assertEqual(result_full, expected_full)
 
     def test_PUT_freespeech(self):
-        pairs = [
-            ('something', self.testblasphemy),
-            ('something2', 'not blasphemy')]
         ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor())
         ss.censor.add_words([self.testblasphemy])
-        for pair in pairs:
-            ss.PUT(pair[0], pair[1])
+        ss.PUT(self.pairs['blasph'][0], self.pairs['blasph'][1])
+        ss.PUT(self.pairs['normal'][0], self.pairs['normal'][1])
         with self.dbconn as dbconn:
             dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
             result = dbconn.cursor.fetchall()
-        self.assertEqual(pairs, result)
+        self.assertEqual(set(self.tuplepairs['blasph']), set(result))
 
     def test_PUT_censored(self):
-        pairs = [
-            ('something', self.testblasphemy),
-            ('something2', 'not blasphemy')]
-        ss = munger.SavedSearches(self.dbconn, self.tablename, Wordfilter())
-        ss.censor.add_words([self.testblasphemy])
-        ss.PUT(pairs[1][0], pairs[1][1])
+        ss = munger.SavedSearches(self.dbconn, self.tablename, self.wordfilter)
+        ss.PUT(self.pairs['normal'][0], self.pairs['normal'][1])
         with self.assertRaises(cherrypy.HTTPError):
-            ss.PUT(pairs[0][0], pairs[0][1])
+            ss.PUT(self.pairs['blasph'][0], self.pairs['blasph'][1])
         with self.dbconn as dbconn:
             dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
             result = dbconn.cursor.fetchall()
-        self.assertEqual([pairs[1]], result)
+        self.assertEqual(self.tuplepairs['normal'], result)
 
     def test_PUT_readonly(self):
-        exsearch = 'something'
-        exreplace = 'whatever'
         ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor(), writeable=False)
         with self.assertRaises(cherrypy.HTTPError):
-            ss.PUT(exsearch, exreplace)
+            ss.PUT(self.pairs['blasph'][0], self.pairs['blasph'][1])
+        with self.assertRaises(cherrypy.HTTPError):
+            ss.PUT(self.pairs['normal'][0], self.pairs['normal'][1])
         with self.dbconn as dbconn:
-            sql = "SELECT * FROM {} WHERE search=? AND replace=?".format(self.tablename)
-            param = (exsearch, exreplace)
-            dbconn.cursor.execute(sql, param)
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
             result = dbconn.cursor.fetchall()
         self.assertEqual(result, [])
+
+    def test_addpair_freespeech(self):
+        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor())
+        ss.addpair(self.pairs['normal'][0], self.pairs['normal'][1])
+        ss.addpair(self.pairs['blasph'][0], self.pairs['blasph'][1])
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
+            results = dbconn.cursor.fetchall()
+        self.assertEqual(len(results), 2)
+        self.assertIn(self.pairs['normal'], results)
+        self.assertIn(self.pairs['blasph'], results)
+
+    def test_addpair_censored(self):
+        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor(), writeable=False)
+        ss.addpair(self.pairs['normal'][0], self.pairs['normal'][1])
+        ss.addpair(self.pairs['blasph'][0], self.pairs['blasph'][1])
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
+            results = dbconn.cursor.fetchall()
+        self.assertEqual(len(results), 2)
+        self.assertIn(self.pairs['normal'], results)
+        self.assertIn(self.pairs['blasph'], results)
+
+    def test_addpair_readonly(self):
+        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor(), writeable=False)
+        ss.addpair(self.pairs['normal'][0], self.pairs['normal'][1])
+        ss.addpair(self.pairs['blasph'][0], self.pairs['blasph'][1])
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
+            results = dbconn.cursor.fetchall()
+        self.assertEqual(set(self.tuplepairs['blasph']), set(results))
+
 
 # class MiscellaneousTestCase(unittest.TestCase):
 

@@ -48,7 +48,10 @@ class SavedSearches(object):
             raise cherrypy.HTTPError(403, "This service is read-only")
         elif self.censor.blacklisted(replace):
             raise cherrypy.HTTPError(451, "Content not appropriate")
+        else:
+            self.addpair(search, replace)
 
+    def addpair(self, search, replace):
         with self.connection as dbconn:
             testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
             insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
