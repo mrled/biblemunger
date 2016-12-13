@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import sys
@@ -58,7 +59,10 @@ class SavedSearches(object):
             params = (search, replace)
             dbconn.cursor.execute(testsql, params)
             if dbconn.cursor.fetchall() == []:
+                logging.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(search, replace, self.tablename))
                 dbconn.cursor.execute(insertsql, params)
+            else:
+                logging.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(search, replace, self.tablename))
 
 
 class VersionApi(object):
@@ -170,11 +174,26 @@ def application(environ=None, start_response=None):
     with open(configfile) as f:
         configuration = json.load(f)
 
+    if not configuration['loglevel'] or configuration['loglevel'] == "INFO":
+        loglevel = logging.INFO
+    elif configuration['loglevel'] == "DEBUG":
+        loglevel = logging.DEBUG
+    else:
+        raise Exception("Log level '{}' is not supported".format(configuration['loglevel']))
+    if configuration['logfile']:
+        logfile = os.path.abspath(configuration['logfile'])
+        logging.basicConfig(filename=logfile, level=loglevel)
+    else:
+        logging.basicConfig(level=loglevel)
+
+    logging.debug("Using config file at {}".format(configfile))
+
     if os.name == 'nt':
         dburitemplate = "file:///{}?cache=shared"
     else:
         dburitemplate = "file:///{}?cache=shared"
     dburi = dburitemplate.format(os.path.abspath(configuration['dbpath']))
+    logging.debug("Using SQLite URI: {}".format(dburi))
 
     lockableconn = util.LockableSqliteConnection(dburi)
 
@@ -189,6 +208,7 @@ def application(environ=None, start_response=None):
     else:
         censor = ImpotentCensor()
         filtering = False
+    logging.debug("Enabling censorship: {}".format(filtering))
 
     if mode == 'wsgi':
         sys.stdout = sys.stderr

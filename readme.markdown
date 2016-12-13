@@ -28,6 +28,15 @@ If you want to run from Apache, consider using WSGI:
     </Directory>
     WSGIScriptAlias /biblemunger /path/to/webapps/biblemunger/munger.py
 
+## Config file
+
+The configuration file is in the loathesome JSON format, because I am lazy. There is no crying in baseball, and there are no comments in JSON. How chill would life be if we could just express our emotions, possibly when writing comments in our config files? I have literally no idea because we simply do not live in that world.
+
+- `wordfilter`: Set to `true` if you want to censor bad words from the replacement list.
+- `favorites`: A list of search terms and replacement tokens. Useful to define a few of these so that people have some examples on what to search for.
+- `logfile`: If this is set, enable logging to a file
+- `loglevel`: Must be `INFO` or `DEBUG`
+
 ## TODO
 
 A random list that should probably be pruned:

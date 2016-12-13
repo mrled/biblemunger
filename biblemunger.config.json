@@ -9,5 +9,7 @@
         {"search": "servant", "replace": "uber driver"},
         {"search": "thy salvation", "replace": "dat ass"},
         {"search": "staff", "replace": "dick"}
-    ]
+    ],
+    "logfile": "biblemunger.log",
+    "loglevel": "DEBUG"
 }
