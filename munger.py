@@ -44,18 +44,18 @@ class SavedSearches(object):
         return results or []
 
     def PUT(self, search, replace):
-        if self.writeable:
-            if self.censor.blacklisted(replace):
-                return
-            with self.connection as dbconn:
-                testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
-                insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
-                params = (search, replace)
-                dbconn.cursor.execute(testsql, params)
-                if dbconn.cursor.fetchall() == []:
-                    dbconn.cursor.execute(insertsql, params)
-        else:
+        if not self.writeable:
             raise cherrypy.HTTPError(403, "This service is read-only")
+        elif self.censor.blacklisted(replace):
+            raise cherrypy.HTTPError(451, "Content not appropriate")
+
+        with self.connection as dbconn:
+            testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
+            insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
+            params = (search, replace)
+            dbconn.cursor.execute(testsql, params)
+            if dbconn.cursor.fetchall() == []:
+                dbconn.cursor.execute(insertsql, params)
 
 
 class VersionApi(object):

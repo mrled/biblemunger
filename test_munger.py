@@ -95,8 +95,9 @@ class SavedSearchesTestCase(unittest.TestCase):
             ('something2', 'not blasphemy')]
         ss = munger.SavedSearches(self.dbconn, self.tablename, Wordfilter())
         ss.censor.add_words([self.testblasphemy])
-        for pair in pairs:
-            ss.PUT(pair[0], pair[1])
+        ss.PUT(pairs[1][0], pairs[1][1])
+        with self.assertRaises(cherrypy.HTTPError):
+            ss.PUT(pairs[0][0], pairs[0][1])
         with self.dbconn as dbconn:
             dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
             result = dbconn.cursor.fetchall()
