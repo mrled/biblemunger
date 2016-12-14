@@ -43,7 +43,7 @@ function searchReplace(search, replace) {
     getSavedSearch('favorites', 'searchFavoriteResults');
 
     var wrappedReplace = "<span class='munged'>"+replace+"</span>";
-    $.ajax({url: "api/search/" + search}).done(function(verses) {
+    $.ajax({url: "search/" + search}).done(function(verses) {
         var newResults = ""
         newResults += "<div id='results'>";
         newResults += "<h2>"+search+" ⇒ "+replace+"</h2>";
@@ -57,7 +57,7 @@ function searchReplace(search, replace) {
 
         if (foundVerse) {
             // Only add a search to the recents list if it had results, & check for a new recent afterwards
-            $.ajax({url: "/api/recents/"+search+"/"+replace+"/", method: "PUT"}).done(function(data) {
+            $.ajax({url: "/recents/"+search+"/"+replace+"/", method: "PUT"}).done(function(data) {
                 getSavedSearch('recents', 'searchRecentResults');
             });
         }
@@ -141,8 +141,7 @@ function applyHashParams() {
  * uri: a URI (relative is fine) that the SavedSearches object is mounted to
  * elemtnId: the ID of an element which we will replace with the search results
  */
-function getSavedSearch(type, elementId) {
-    var uri = "saved/"+type
+function getSavedSearch(uri, elementId) {
     $.ajax({url: uri}).done(function(html) {
         document.getElementById(elementId).innerHTML = html;
     });

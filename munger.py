@@ -35,14 +35,8 @@ class SavedSearches(object):
         self.connection = lockableconn
         self.tablename = tablename
         self.censor = censor
-        self.writeable = bool(writeable)
-
-    @cherrypy.tools.json_out()
-    def GET(self):
-        with self.connection as dbconn:
-            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablename))
-            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
-        return results or []
+        self.writeable = writeable
+        self.initialize_database()
 
     def PUT(self, search, replace):
         if not self.writeable:
@@ -52,7 +46,19 @@ class SavedSearches(object):
         else:
             self.addpair(search, replace)
 
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename="saved.mako")
+    def GET(self):
+        return {'pairs': self.get()}
+
+    def get(self):
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablename))
+            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
+        return results
+
     def addpair(self, search, replace):
+        """Add a pair, bypassing the censor and/or read-only flags"""
         with self.connection as dbconn:
             testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
             insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
@@ -64,19 +70,29 @@ class SavedSearches(object):
             else:
                 logging.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(search, replace, self.tablename))
 
+    def initialize_database(self):
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
+            if not dbconn.cursor.fetchone():
+                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablename))
+
 
 class VersionApi(object):
     exposed = True
 
+    def __init__(self, file=os.path.join(scriptdir, 'deploymentinfo.txt')):
+        self.file = file
+        self._version = None
+
     def GET(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        deploymentinfofile = os.path.join(scriptdir, 'deploymentinfo.txt')
-        try:
-            with open(deploymentinfofile) as df:
-                deploymentinfo = df.read()
-        except:
-            deploymentinfo = "development version"
-        return deploymentinfo
+        if not self._version:
+            try:
+                with open(self.deploymentinfofile) as df:
+                    self._version = df.read()
+            except:
+                self._version = "development version"
+        return self.version
 
 
 class BibleSearchApi(object):
@@ -92,60 +108,27 @@ class BibleSearchApi(object):
         return self.bible.search(search)
 
 
-class ApiServer(object):
-
+class Munger(object):
     exposed = True
     tablenames = {
         'recents': 'recent_searches',
         'favorites': 'favorite_searches'}
 
     def __init__(self, lockableconn, bible, censor):
-
         global scriptdir
-
+        self._bible = bible
+        self.censor = censor
         self.connection = lockableconn
-        self.initialize_database()
-
+        self.apptitle = "biblemunger"
+        self.appsubtitle = "provocative text replacement in famous literature"
+        self.filtering = False if censor is ImpotentCensor else True
         self.recents = SavedSearches(self.connection, self.tablenames['recents'], censor)
         self.favorites = SavedSearches(self.connection, self.tablenames['favorites'], censor, writeable=False)
         self.version = VersionApi()
         self.search = BibleSearchApi(bible)
 
-    def initialize_database(self):
-        with self.connection as dbconn:
-            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['recents']))
-            if not dbconn.cursor.fetchone():
-                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablenames['recents']))
-            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['favorites']))
-            if not dbconn.cursor.fetchone():
-                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablenames['favorites']))
-
-    def GET(self):
-        cherrypy.response.headers['Content-Type'] = "text/plain"
-        return "Welcome to the BibleMunger API"
-
-
-class FrontEndServer(object):
-
-    def __init__(self, lockableconn, bible, filtering=False):
-
-        global scriptdir
-
-        self._bible = bible
-        self.connection = lockableconn
-        self.apptitle = "biblemunger"
-        self.appsubtitle = "provocative text replacement in famous literature"
-
-        self.filtering = filtering
-        if self.filtering:
-            import wordfilter
-            self.censor = wordfilter.Wordfilter()
-        else:
-            self.censor = ImpotentCensor()
-
-    @cherrypy.expose
     @cherrypy.tools.mako(filename='munge.mako')
-    def index(self, search=None, replace=None):
+    def GET(self, search=None, replace=None):
         if search and replace:
             pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
             # TODO: put a method for finding the shortest verse matching a search on the bible object?
@@ -161,26 +144,9 @@ class FrontEndServer(object):
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
             'exreplacement':  exreplacement,
-            'recents':        self.saved_data('recents'),
-            'favorites':      self.saved_data('favorites'),
+            'recents':        self.recents.get(),
+            'favorites':      self.favorites.get(),
             'filterinuse':    self.filtering}
-
-    @cherrypy.expose
-    @cherrypy.tools.mako(filename="saved.mako")
-    def saved(self, which):
-        return {'pairs': self.saved_data(which)}
-
-    def saved_data(self, which):
-        if which == 'recents':
-            tablename = 'recent_searches'
-        elif which == 'favorites':
-            tablename = 'favorite_searches'
-        else:
-            raise cherrypy.HTTPError(404, "No such saved list")
-        with self.connection as dbconn:
-            dbconn.cursor.execute("SELECT search, replace FROM {}".format(tablename))
-            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
-        return results
 
 
 def application(environ=None, start_response=None):
@@ -243,13 +209,13 @@ def application(environ=None, start_response=None):
             'server.socket_port': configuration['port'],
             'server.socket_host': configuration['server']})
 
-    frontend = FrontEndServer(lockableconn, bib, filtering=filtering)
-    api = ApiServer(lockableconn, bib, censor)
+    server = Munger(lockableconn, bib, censor)
     for fave in configuration['favorites']:
-        api.favorites.addpair(fave['search'], fave['replace'])
+        server.favorites.addpair(fave['search'], fave['replace'])
 
-    cherrypy.tree.mount(frontend, '/', {
+    cherrypy.tree.mount(server, '/', {
         '/': {
+            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
             'tools.mako.directories': os.path.join(scriptdir, 'temple'),
             'tools.staticdir.root': scriptdir},
         '/static': {
@@ -258,8 +224,6 @@ def application(environ=None, start_response=None):
         "/favicon.ico": {
             "tools.staticfile.on": True,
             "tools.staticfile.filename": os.path.join(scriptdir, 'static', 'favicon.ico')}})
-    cherrypy.tree.mount(api, '/api', {
-        '/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
 
     if mode == 'wsgi':
         return cherrypy.tree(environ, start_response)
