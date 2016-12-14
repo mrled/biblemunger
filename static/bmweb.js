@@ -41,35 +41,12 @@ function searchReplace(search, replace) {
     // Check if there have been any updates to the favorites list whenver we search
     // (We check for recents later)
     getSavedSearch('favorites', 'searchFavoriteResults');
-
-    var wrappedReplace = "<span class='munged'>"+replace+"</span>";
-    $.ajax({url: "search/" + search}).done(function(verses) {
-        var newResults = ""
-        newResults += "<div id='results'>";
-        newResults += "<h2>"+search+" ⇒ "+replace+"</h2>";
-        newResults += "<table border=0 cellspacing=5 cellpadding=5 align='CENTER'>";
-        var foundVerse = false;
-        verses.forEach(function(verse) {
-            foundVerse = true;
-            mungedText = verse.text.replace(search, wrappedReplace);
-            newResults += "<tr><td>"+verse.book+" "+verse.chapter+":"+verse.verse+"</td><td>"+mungedText+"</td></tr>";
-        });
-
-        if (foundVerse) {
-            // Only add a search to the recents list if it had results, & check for a new recent afterwards
-            $.ajax({url: "/recents/"+search+"/"+replace+"/", method: "PUT"}).done(function(data) {
-                getSavedSearch('recents', 'searchRecentResults');
-            });
-        }
-        else {
-            getSavedSearch('recents', 'searchRecentResults');
-        }
-
-        newResults += "</table>";
-        newResults += "</div>";
-        document.getElementById("results").innerHTML = newResults;
-    })
+    $.ajax({url: "search/" + search}).done(function(html) {
+        getSavedSearch('recents', 'searchRecentResults');
+        document.getElementById("results").innerHTML = html;
+    });
 }
+
 
 /* Assemble a query string
  * Use a prefix of '?' for a normal query string that is passed to the server, or '#' for a hash/fragment/anchor query string
@@ -100,7 +77,7 @@ function submitSearchReplace() {
     var hashParams = [];
     if (search.length  > 0) { hashParams.push({'name': 'search',  'value': search }); }
     if (replace.length > 0) { hashParams.push({'name': 'replace', 'value': replace}); }
-    window.location = buildQueryString(hashParams, "#")
+    // window.location = buildQueryString(hashParams, "#")
 }
 
 /* Pull key=value pairs out of the URL anchor
@@ -148,10 +125,7 @@ function getSavedSearch(uri, elementId) {
 }
 
 window.onload = function() {
-    applyHashParams();
+    // applyHashParams();
     getSavedSearch('recents', 'searchRecentResults');
     getSavedSearch('favorites', 'searchFavoriteResults');
 };
-window.onhashchange = function() {
-    applyHashParams();
-}

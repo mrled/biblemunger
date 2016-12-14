@@ -38,13 +38,18 @@ class SavedSearches(object):
         self.writeable = writeable
         self.initialize_database()
 
-    def PUT(self, search, replace):
-        if not self.writeable:
-            raise cherrypy.HTTPError(403, "This service is read-only")
-        elif self.censor.blacklisted(replace):
-            raise cherrypy.HTTPError(451, "Content not appropriate")
-        else:
-            self.addpair(search, replace)
+    # def PUT(self, search, replace):
+    #     if not self.writeable:
+    #         raise cherrypy.HTTPError(403, "This service is read-only")
+    #     elif self.censor.blacklisted(replace):
+    #         raise cherrypy.HTTPError(451, "Content not appropriate")
+    #     else:
+    #         self.addpair(search, replace)
+
+    def put(self, search, replace):
+        if not self.writeable or self.censor.blacklisted(replace):
+            return
+        self.addpair(search, replace)
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename="saved.mako")
@@ -97,14 +102,19 @@ class VersionApi(object):
 
 class BibleSearchApi(object):
     exposed = True
-    dictencoder = util.DictEncoder()
 
     def __init__(self, bible):
         self.bible = bible
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out(handler=dictencoder.cherrypy_json_handler)
-    def GET(self, search):
+    @cherrypy.popargs('search', 'replace')
+    @cherrypy.tools.mako(filename='results.mako')
+    def GET(self, search=None, replace=None, **posargs):
+        if not search and replace:
+            raise cherrypy.HTTPError(400, "u fukt up bad")
+        return {'search': search, 'replace': replace, 'verses': self.get(search, replace)}
+
+    def get(self, search, replace):
+        # NOTE: Actual replacement is done in the template, not here
         return self.bible.search(search)
 
 
@@ -127,18 +137,23 @@ class Munger(object):
         self.version = VersionApi()
         self.search = BibleSearchApi(bible)
 
+    @cherrypy.popargs('search', 'replace')
     @cherrypy.tools.mako(filename='munge.mako')
-    def GET(self, search=None, replace=None):
+    def GET(self, search=None, replace=None, **posargs):
+        pagetitle = self.apptitle
+        exreplacement = None
+        results = None
         if search and replace:
+            self.recents.put(search, replace)
+            results = self.search.get(search, replace)
+            logging.debug("Search/replace: {}/{}".format(search, replace))
             pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
             # TODO: put a method for finding the shortest verse matching a search on the bible object?
             verses = self._bible.search(search)
             if len(verses) > 0:
-                shortestresult = min(verses, key=len)
+                shortestresult = min([v.text for v in verses], key=len)
                 exreplacement = re.sub(search, replace, shortestresult)
-        else:
-            pagetitle = self.apptitle
-            exreplacement = None
+                logging.debug("Found a verse! Example replacement: {}".format(exreplacement))
         return {
             'pagetitle':      pagetitle,
             'apptitle':       self.apptitle,
@@ -146,6 +161,9 @@ class Munger(object):
             'exreplacement':  exreplacement,
             'recents':        self.recents.get(),
             'favorites':      self.favorites.get(),
+            'search':         search,
+            'replace':        replace,
+            'results':        results,
             'filterinuse':    self.filtering}
 
 
