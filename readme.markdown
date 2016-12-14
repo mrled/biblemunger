@@ -56,6 +56,7 @@ A random list that should probably be pruned:
     - How to test CherryPy apps without running the full server: https://bitbucket.org/Lawouach/cherrypy-recipes/src/1a27059966e962be52b2abd91e9709c3ee63cf2d/testing/unit/serverless/test.py?at=default&fileviewer=file-view-default
     - Write integrations tests for the backend
     - Also, test the frontend
+- SQLite searches aren't accounting for whitespice. If you search for " mad " you'll still end up matching "made" etc.
 
 ### BibleMunger 2.0: A big update
 
