@@ -29,20 +29,20 @@ function toggleHideId(Id) {
 
 function toggleHideFavorites() {
     toggleHideId('searchFavorites');
-    getSavedSearch('favorites', 'searchFavoriteResults');
+    getSavedSearch('/favorites', 'searchFavoriteResults');
 }
 
 function toggleHideRecents() {
     toggleHideId('searchRecents');
-    getSavedSearch('recents', 'searchRecentResults');
+    getSavedSearch('/recents', 'searchRecentResults');
 }
 
 function searchReplace(search, replace) {
     // Check if there have been any updates to the favorites list whenver we search
     // (We check for recents later)
-    getSavedSearch('favorites', 'searchFavoriteResults');
+    getSavedSearch('/favorites', 'searchFavoriteResults');
     $.ajax({url: "search/" + search}).done(function(html) {
-        getSavedSearch('recents', 'searchRecentResults');
+        getSavedSearch('/recents', 'searchRecentResults');
         document.getElementById("results").innerHTML = html;
     });
 }
@@ -126,6 +126,6 @@ function getSavedSearch(uri, elementId) {
 
 window.onload = function() {
     // applyHashParams();
-    getSavedSearch('recents', 'searchRecentResults');
-    getSavedSearch('favorites', 'searchFavoriteResults');
+    getSavedSearch('/recents', 'searchRecentResults');
+    getSavedSearch('/favorites', 'searchFavoriteResults');
 };

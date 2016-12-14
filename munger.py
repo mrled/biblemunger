@@ -121,6 +121,17 @@ class BibleSearchApi(object):
         return self.bible.search(search)
 
 
+class SearchFormRerouter(object):
+    """Redirect form data from /searchForm?search=SEARCH&replace=REPLACE to /SEARCH/REPLACE"""
+    exposed = True
+
+    def GET(self, search=None, replace=None):
+        if not search or not replace:
+            raise cherrypy.HTTPError(400, "Bad request")
+        redirurl = "/{}/{}/".format(search, replace)
+        raise cherrypy.HTTPRedirect(redirurl)
+
+
 class Munger(object):
     exposed = True
     tablenames = {
@@ -139,6 +150,7 @@ class Munger(object):
         self.favorites = SavedSearches(self.connection, self.tablenames['favorites'], censor, writeable=False)
         self.version = VersionApi()
         self.search = BibleSearchApi(bible)
+        self.searchForm = SearchFormRerouter()
 
     @cherrypy.popargs('search', 'replace')
     @cherrypy.tools.mako(filename='munge.mako')

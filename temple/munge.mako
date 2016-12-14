@@ -87,7 +87,7 @@
 
   <div id="searchSubsection">
     <h2>Search and <span class="strikeThru">destroy</span> replace</h2>
-    <form id="mungerForm" method=GET >
+    <form id="mungerForm" method=GET action="/searchForm">
       <span class="labelAndBox" id="searchField">Search: <input type=text name="search" id="searchBox" size=20 autofocus="true" autocapitalize="off" value="" /></span>
       <span class="labelAndBox" id="replaceField">Replace: <input type=text name="replace" id="replaceBox" size=20 autocapitalize="off" value="" /></span>
       <span id="mungeButton"><input type=submit value="Munge" /></span>
