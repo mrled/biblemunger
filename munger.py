@@ -133,9 +133,15 @@ class FrontEndServer(object):
 
         self._bible = bible
         self.connection = lockableconn
-        self.filtering = filtering
         self.apptitle = "biblemunger"
         self.appsubtitle = "provocative text replacement in famous literature"
+
+        self.filtering = filtering
+        if self.filtering:
+            import wordfilter
+            self.censor = wordfilter.Wordfilter()
+        else:
+            self.censor = ImpotentCensor()
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename='munge.mako')
@@ -155,7 +161,26 @@ class FrontEndServer(object):
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
             'exreplacement':  exreplacement,
+            'recents':        self.saved_data('recents'),
+            'favorites':      self.saved_data('favorites'),
             'filterinuse':    self.filtering}
+
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename="saved.mako")
+    def saved(self, which):
+        return {'pairs': self.saved_data(which)}
+
+    def saved_data(self, which):
+        if which == 'recents':
+            tablename = 'recent_searches'
+        elif which == 'favorites':
+            tablename = 'favorite_searches'
+        else:
+            raise cherrypy.HTTPError(404, "No such saved list")
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT search, replace FROM {}".format(tablename))
+            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
+        return results
 
 
 def application(environ=None, start_response=None):

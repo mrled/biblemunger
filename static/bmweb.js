@@ -29,18 +29,18 @@ function toggleHideId(Id) {
 
 function toggleHideFavorites() {
     toggleHideId('searchFavorites');
-    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults');
+    getSavedSearch('favorites', 'searchFavoriteResults');
 }
 
 function toggleHideRecents() {
     toggleHideId('searchRecents');
-    getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
+    getSavedSearch('recents', 'searchRecentResults');
 }
 
 function searchReplace(search, replace) {
     // Check if there have been any updates to the favorites list whenver we search
     // (We check for recents later)
-    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults');
+    getSavedSearch('favorites', 'searchFavoriteResults');
 
     var wrappedReplace = "<span class='munged'>"+replace+"</span>";
     $.ajax({url: "api/search/" + search}).done(function(verses) {
@@ -58,11 +58,11 @@ function searchReplace(search, replace) {
         if (foundVerse) {
             // Only add a search to the recents list if it had results, & check for a new recent afterwards
             $.ajax({url: "/api/recents/"+search+"/"+replace+"/", method: "PUT"}).done(function(data) {
-                getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
+                getSavedSearch('recents', 'searchRecentResults');
             });
         }
         else {
-            getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
+            getSavedSearch('recents', 'searchRecentResults');
         }
 
         newResults += "</table>";
@@ -141,28 +141,17 @@ function applyHashParams() {
  * uri: a URI (relative is fine) that the SavedSearches object is mounted to
  * elemtnId: the ID of an element which we will replace with the search results
  */
-function getPreviousSearchReplacePairs(uri, elementId, failureMsg) {
-    $.ajax({url: uri}).done(function(pairs) {
-        var html = "";
-        if (pairs.length > 0) {
-            html += "<ul class='noBullets'>";
-            pairs.forEach(function(pair) {
-                html += "<li>";
-                html += "<a href='#search="+pair.search+"&replace="+pair.replace+"'>";
-                html += pair.search+" ⇒ "+pair.replace;
-                html += "</a>";
-                html += "</li>";
-            });
-            html += "</ul>";
-        }
+function getSavedSearch(type, elementId) {
+    var uri = "saved/"+type
+    $.ajax({url: uri}).done(function(html) {
         document.getElementById(elementId).innerHTML = html;
     });
 }
 
 window.onload = function() {
     applyHashParams();
-    getPreviousSearchReplacePairs('api/recents', 'searchRecentResults');
-    getPreviousSearchReplacePairs('api/favorites', 'searchFavoriteResults');
+    getSavedSearch('recents', 'searchRecentResults');
+    getSavedSearch('favorites', 'searchFavoriteResults');
 };
 window.onhashchange = function() {
     applyHashParams();
