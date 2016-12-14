@@ -43,7 +43,6 @@ A random list that should probably be pruned:
 
 - Use better version stamping system and/or something with the `__version__` attribute
 - Handle case, punctuation, whitespace more intuitively
-- Should filter on input side, in bmweb.py, in addition to output side, in index.mako. That is, filter out any HTML in a search before it gets wrote to the DB.
 - Reverse the sorting of the recent searches
 - More consistent layout would be nice, CSS is hard
 - Show most searched

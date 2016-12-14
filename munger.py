@@ -1,5 +1,6 @@
 import json
 import logging
+import html
 import os
 import re
 import sys
@@ -64,16 +65,18 @@ class SavedSearches(object):
 
     def addpair(self, search, replace):
         """Add a pair, bypassing the censor and/or read-only flags"""
+        esearch = html.escape(search)
+        ereplace = html.escape(replace)
         with self.connection as dbconn:
             testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
             insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
-            params = (search, replace)
+            params = (esearch, ereplace)
             dbconn.cursor.execute(testsql, params)
             if dbconn.cursor.fetchall() == []:
-                logging.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(search, replace, self.tablename))
+                logging.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablename))
                 dbconn.cursor.execute(insertsql, params)
             else:
-                logging.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(search, replace, self.tablename))
+                logging.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablename))
 
     def initialize_database(self):
         with self.connection as dbconn:

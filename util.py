@@ -35,8 +35,7 @@ class MakoLoader(object):
                 module_directory=module_directory,
                 collection_size=collection_size,
                 input_encoding='utf-8',
-                output_encoding='utf-8',
-                default_filters=['h'])
+                output_encoding='utf-8')
             self.lookups[key] = lookup
         cherrypy.request.lookup = lookup
 
