@@ -62,6 +62,7 @@ A random list that should probably be pruned:
 - Minify and compress
     - Can Python minify my JS, HTML, and CSS?
     - Can CherryPy compress it automatically? (If so, will that work when run as WSGI?)
+- Open up dev tools in e.g. Chrome and figure out if I really need *all* those requests - some are redundant but I think I need some extra logic to eliminate the redundancy
 
 ### BibleMunger 2.0: A big update
 
