@@ -28,119 +28,12 @@ class ImpotentCensor(object):
         return
 
 
-class SavedSearches(object):
-
-    exposed = True
-
-    def __init__(self, lockableconn, tablename, censor, writeable=True):
-        self.connection = lockableconn
-        self.tablename = tablename
-        self.censor = censor
-        self.writeable = writeable
-        self.initialize_database()
-
-    # def PUT(self, search, replace):
-    #     if not self.writeable:
-    #         raise cherrypy.HTTPError(403, "This service is read-only")
-    #     elif self.censor.blacklisted(replace):
-    #         raise cherrypy.HTTPError(451, "Content not appropriate")
-    #     else:
-    #         self.addpair(search, replace)
-
-    def put(self, search, replace):
-        if not self.writeable or self.censor.blacklisted(replace):
-            return
-        self.addpair(search, replace)
-
-    @cherrypy.expose
-    @cherrypy.tools.mako(filename="saved.mako")
-    def GET(self):
-        return {'pairs': self.get()}
-
-    def get(self):
-        with self.connection as dbconn:
-            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablename))
-            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
-        return results
-
-    def addpair(self, search, replace):
-        """Add a pair, bypassing the censor and/or read-only flags"""
-        esearch = html.escape(search)
-        ereplace = html.escape(replace)
-        with self.connection as dbconn:
-            testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename)
-            insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablename)
-            params = (esearch, ereplace)
-            dbconn.cursor.execute(testsql, params)
-            if dbconn.cursor.fetchall() == []:
-                logging.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablename))
-                dbconn.cursor.execute(insertsql, params)
-            else:
-                logging.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablename))
-
-    def initialize_database(self):
-        with self.connection as dbconn:
-            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
-            if not dbconn.cursor.fetchone():
-                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablename))
-
-
-class VersionApi(object):
-    exposed = True
-
-    def __init__(self, file=os.path.join(scriptdir, 'deploymentinfo.txt')):
-        self.file = file
-        self._version = None
-
-    def GET(self):
-        cherrypy.response.headers['Content-Type'] = "text/plain"
-        if not self._version:
-            try:
-                with open(self.deploymentinfofile) as df:
-                    self._version = df.read()
-            except:
-                self._version = "development version"
-        return self.version
-
-
-class BibleSearchApi(object):
-    exposed = True
-
-    def __init__(self, bible, recents):
-        self.bible = bible
-        self.recents = recents
-
-    @cherrypy.popargs('search', 'replace')
-    @cherrypy.tools.mako(filename='results.mako')
-    def GET(self, search=None, replace=None, **posargs):
-        if not search and replace:
-            raise cherrypy.HTTPError(400, "u fukt up bad")
-        return {'search': search, 'replace': replace, 'verses': self.get(search, replace)}
-
-    def get(self, search, replace):
-        # NOTE: Actual replacement is done in the template, not here. lol
-        self.recents.put(search, replace)
-        return self.bible.search(search)
-
-
-class SearchFormRerouter(object):
-    """Redirect form data from /searchForm?search=SEARCH&replace=REPLACE to /SEARCH/REPLACE"""
-    exposed = True
-
-    def GET(self, search=None, replace=None):
-        if not search or not replace:
-            raise cherrypy.HTTPError(400, "Bad request")
-        redirurl = "/{}/{}/".format(search, replace)
-        raise cherrypy.HTTPRedirect(redirurl)
-
-
 class Munger(object):
-    exposed = True
     tablenames = {
         'recents': 'recent_searches',
         'favorites': 'favorite_searches'}
 
-    def __init__(self, lockableconn, bible, censor):
+    def __init__(self, lockableconn, bible, censor, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
         global scriptdir
         self._bible = bible
         self.censor = censor
@@ -148,15 +41,17 @@ class Munger(object):
         self.apptitle = "biblemunger"
         self.appsubtitle = "provocative text replacement in famous literature"
         self.filtering = False if censor is ImpotentCensor else True
-        self.recents = SavedSearches(self.connection, self.tablenames['recents'], censor)
-        self.favorites = SavedSearches(self.connection, self.tablenames['favorites'], censor, writeable=False)
-        self.version = VersionApi()
-        self.search = BibleSearchApi(bible, self.recents)
-        self.searchForm = SearchFormRerouter()
+        self.versionfile = versionfile
+        self._version = None
 
+    @cherrypy.expose
+    def index(self, *args, **posargs):
+        raise cherrypy.HTTPRedirect('munge')
+
+    @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
     @cherrypy.tools.mako(filename='munge.mako')
-    def GET(self, search=None, replace=None, **posargs):
+    def munge(self, search=None, replace=None, **posargs):
         pagetitle = self.apptitle
         exreplacement = None
         results = None
@@ -176,12 +71,92 @@ class Munger(object):
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
             'exreplacement':  exreplacement,
-            'recents':        self.recents.get(),
-            'favorites':      self.favorites.get(),
+            'recents':        self._saved('recents'),
+            'favorites':      self._saved('favorites'),
             'search':         search,
             'replace':        replace,
             'results':        results,
             'filterinuse':    self.filtering}
+
+    def _saved(self, savetype):
+        if savetype not in self.tablenames.keys():
+            raise Exception("Invalid savetype: " + savetype)
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablenames[savetype]))
+            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
+        return results
+
+    def addsave(self, savetype, search, replace, force=False):
+        """Add a search/replace pair, *bypassing* the censor and/or read-only flags"""
+        if savetype not in self.tablenames.keys():
+            raise Exception("Invalid savetype: " + savetype)
+        if not force:
+            if not self.writeable or self.censor.blacklisted(replace):
+                return
+        esearch = html.escape(search)
+        ereplace = html.escape(replace)
+        with self.connection as dbconn:
+            testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablenames[savetype])
+            insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablenames[savetype])
+            params = (esearch, ereplace)
+            dbconn.cursor.execute(testsql, params)
+            if dbconn.cursor.fetchall() == []:
+                logging.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablenames[savetype]))
+                dbconn.cursor.execute(insertsql, params)
+            else:
+                logging.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablenames[savetype]))
+
+    def initialize_database(self):
+        with self.connection as dbconn:
+            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['recents']))
+            if not dbconn.cursor.fetchone():
+                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablenames['recents']))
+            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['favorites']))
+            if not dbconn.cursor.fetchone():
+                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablenames['favorites']))
+
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename="saved.mako")
+    def recents(self):
+        return {'pairs': self._saved('recents')}
+
+    @cherrypy.expose
+    @cherrypy.tools.mako(filename="saved.mako")
+    def favorites(self):
+        return {'pairs': self._saved('favorites')}
+
+    @cherrypy.expose
+    def version(self):
+        cherrypy.response.headers['Content-Type'] = "text/plain"
+        if not self._version:
+            try:
+                with open(self.versionfile) as df:
+                    self._version = df.read()
+            except:
+                self._version = "development version"
+        return self.version
+
+    @cherrypy.expose
+    @cherrypy.popargs('search', 'replace')
+    @cherrypy.tools.mako(filename='results.mako')
+    def search(self, search=None, replace=None, **posargs):
+        if not search and replace:
+            raise cherrypy.HTTPError(400, "Both 'search' and 'replace' arguments are required")
+        return {'search': search, 'replace': replace, 'verses': self._search(search, replace)}
+
+    def _search(self, search, replace):
+        # NOTE: Actual replacement is done in the template, not here. lol
+        self.addsave('recents', search, replace)
+        return self.bible.search(search)
+
+    @cherrypy.expose
+    @cherrypy.popargs('search', 'replace')
+    def searchForm(self, search=None, replace=None):
+        """Redirect form data from /searchForm?search=SEARCH&replace=REPLACE to /SEARCH/REPLACE"""
+        if not search or not replace:
+            raise cherrypy.HTTPError(400, "Bad request")
+        redirurl = "/{}/{}/".format(search, replace)
+        raise cherrypy.HTTPRedirect(redirurl)
 
 
 def application(environ=None, start_response=None):
@@ -246,11 +221,10 @@ def application(environ=None, start_response=None):
 
     server = Munger(lockableconn, bib, censor)
     for fave in configuration['favorites']:
-        server.favorites.addpair(fave['search'], fave['replace'])
+        server.addsave('favorites', fave['search'], fave['replace'], force=True)
 
     cherrypy.tree.mount(server, '/', {
         '/': {
-            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
             'tools.mako.directories': os.path.join(scriptdir, 'temple'),
             'tools.staticdir.root': scriptdir},
         '/static': {
