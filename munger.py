@@ -106,8 +106,9 @@ class VersionApi(object):
 class BibleSearchApi(object):
     exposed = True
 
-    def __init__(self, bible):
+    def __init__(self, bible, recents):
         self.bible = bible
+        self.recents = recents
 
     @cherrypy.popargs('search', 'replace')
     @cherrypy.tools.mako(filename='results.mako')
@@ -117,7 +118,8 @@ class BibleSearchApi(object):
         return {'search': search, 'replace': replace, 'verses': self.get(search, replace)}
 
     def get(self, search, replace):
-        # NOTE: Actual replacement is done in the template, not here
+        # NOTE: Actual replacement is done in the template, not here. lol
+        self.recents.put(search, replace)
         return self.bible.search(search)
 
 
@@ -149,7 +151,7 @@ class Munger(object):
         self.recents = SavedSearches(self.connection, self.tablenames['recents'], censor)
         self.favorites = SavedSearches(self.connection, self.tablenames['favorites'], censor, writeable=False)
         self.version = VersionApi()
-        self.search = BibleSearchApi(bible)
+        self.search = BibleSearchApi(bible, self.recents)
         self.searchForm = SearchFormRerouter()
 
     @cherrypy.popargs('search', 'replace')
