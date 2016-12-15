@@ -59,6 +59,9 @@ A random list that should probably be pruned:
 - Just made everything rely on being installed to '/' on webserver - need to fix that
 - Investigate the need for polyfills for older browsers
     - history.pushState / the popstate event
+- Minify and compress
+    - Can Python minify my JS, HTML, and CSS?
+    - Can CherryPy compress it automatically? (If so, will that work when run as WSGI?)
 
 ### BibleMunger 2.0: A big update
 
