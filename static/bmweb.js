@@ -42,6 +42,33 @@ function getUrlPathComponents(url) {
     return components;
 }
 
+/* This is my own shitty function for making an HTTP request. It probably suxxx really hard. Sorry ¯\_(ツ)_/¯
+ * thanx 2 http://youmightnotneedjquery.com for the confidence I need to make this bad decision
+ * NOTE: it doesn't even work at all in IE versions < 9
+ * url: the url to request
+ * success: a function that takes one argument; if the request is successful, call this function with the server's response as its argument
+ * failure: a function that takes one argument; if the request is unsuccessful, call this function with the request object as its argument
+ */
+function shittyAjax(url, success, failure) {
+    var logmsgprefix = "Requested URL at " + url + " ";
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.onreadystatechange = function() {
+        if (this.status >= 200 && this.status < 400) {
+            console.log(logmsgprefix + "and it succeeded with a response of length " + this.responseText.length);
+            success(this.responseText);
+        } else {
+            console.log(logmsgprefix + "but the server returned an error");
+            failure(this);
+        }
+    };
+    request.onerror = function() {
+        console.log(logmsgprefix + "but the connection failed")
+    }
+    request.send();
+    request = null;
+}
+
 /******** Application-specific functions
  * Functions in this section are tied tightly to my application, and may not be too useful to anyone else
  */
@@ -73,24 +100,19 @@ function toggleHideRecents() {
 }
 
 function searchReplace(search, replace) {
-    $.ajax({url: '/search/'+search+'/'+replace+'/'}).done(function(html) {
-        getSavedSearches();
+    shittyAjax('/search/'+search+'/'+replace+'/', function(html) {
         document.getElementById("results").innerHTML = html;
+        getSavedSearches();
     });
 }
 
 /* Get a SavedSearches result
  * uri: a URI (relative is fine) that the SavedSearches object is mounted to
- * elemtnId: the ID of an element which we will replace with the search results
+ * elementId: the ID of an element which we will replace with the search results
  */
 function getSavedSearches() {
-    function getSavedSearch(uri, elementId) {
-        $.ajax({url: uri}).done(function(html) {
-            document.getElementById(elementId).innerHTML = html;
-        });
-    }
-    getSavedSearch('/recents', 'searchRecentResults');
-    getSavedSearch('/favorites', 'searchFavoriteResults');
+    shittyAjax('/recents',   function(html) { document.getElementById('searchRecentResults').innerHTML = html; });
+    shittyAjax('/favorites', function(html) { document.getElementById('searchFavoriteResults').innerHTML = html; });
 }
 
 /* The search form will get retargetted to this function if JS is enabled

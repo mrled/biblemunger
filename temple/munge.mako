@@ -13,7 +13,6 @@
   ## NOTE: Facebook will ignore any text that contains markup here :( so we cannot embolden our munged terms :(:(
   <meta property="og:description" content="${exreplacement if exreplacement else appsubtitle}" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
-  <script src="/static/jquery-3.1.1.min.js"></script>
 </head>
 <body><div id="bodyContent">
 
