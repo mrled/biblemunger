@@ -17,7 +17,7 @@
 </head>
 <body><div id="bodyContent">
 
-<h1><a href="./">${apptitle}</a></h1>
+<h1><a href="/">${apptitle}</a></h1>
 <h2 id="subtitleH2">${appsubtitle}</h2>
 
 <div id="intro">
@@ -77,7 +77,7 @@
     <%include file="saved.mako" args="pairs=favorites" />
   </div>
 </div>
-<div id="searchRecents">    
+<div id="searchRecents">
   <script>toggleHideRecents()</script>
   <p>Here are some recent searches by users:</p>
   <div id="searchRecentResults">
