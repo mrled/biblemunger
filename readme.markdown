@@ -57,6 +57,8 @@ A random list that should probably be pruned:
     - Also, test the frontend
 - SQLite searches aren't accounting for whitespice. If you search for " mad " you'll still end up matching "made" etc.
 - Just made everything rely on being installed to '/' on webserver - need to fix that
+- Investigate the need for polyfills for older browsers
+    - history.pushState / the popstate event
 
 ### BibleMunger 2.0: A big update
 

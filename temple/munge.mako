@@ -92,6 +92,7 @@
       <span class="labelAndBox" id="replaceField">Replace: <input type=text name="replace" id="replaceBox" size=20 autocapitalize="off" value="" /></span>
       <span id="mungeButton"><input type=submit value="Munge" /></span>
     </form>
+    <script>retargetSearchForm()</script>
   </div>
 
   <div id="results">
