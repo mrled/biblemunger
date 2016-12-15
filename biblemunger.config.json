@@ -6,7 +6,8 @@
     "wordfilter": true,
     "favorites": [
         {"search": "hearts", "replace": "feels"},
-        {"search": "servant", "replace": "uber driver"},
+        {"search": "stronger", "replace": "swoler"},
+        {"search": "smite", "replace": "fuck over"},
         {"search": "thy salvation", "replace": "dat ass"},
         {"search": "staff", "replace": "dick"}
     ],
