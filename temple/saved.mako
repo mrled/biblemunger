@@ -3,7 +3,7 @@
 %if pairs:
   <ul class='noBullets'>
   %for pair in pairs:
-    <li><a href="#search=${pair['search']}&replace=${pair['replace']}">${pair['search']} ⇒ ${pair['replace']}</a></li>
+    <li><a href="/${pair['search']}/${pair['replace']}/" class="mungeLink">${pair['search']} ⇒ ${pair['replace']}</a></li>
   %endfor
   </ul>
 %else:
