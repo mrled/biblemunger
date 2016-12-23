@@ -1,6 +1,12 @@
 /* Biblemunger JS
  */
 
+/******** Mako template stuff
+ * These variables come in from Mako. (We then assign them to JavaScript variables so all the code after this is pure valid JS)
+ */
+// Please ensure that this always ends in a '/' character
+var baseurl = "${baseurl}"
+
 /******** Generic utility functions
  * Functions in this section should be generic, divorced from my application
  */
@@ -104,7 +110,7 @@ function toggleHideRecents() {
 }
 
 function searchReplace(search, replace) {
-    shittyAjax('/search/'+search+'/'+replace+'/', function(html) {
+    shittyAjax(baseurl+'/search/'+search+'/'+replace+'/', function(html) {
         document.getElementById("results").innerHTML = html;
         getSavedSearches();
     });
@@ -115,8 +121,8 @@ function searchReplace(search, replace) {
  * elementId: the ID of an element which we will replace with the search results
  */
 function getSavedSearches() {
-    shittyAjax('/recents',   function(html) { document.getElementById('searchRecentResults').innerHTML = html; });
-    shittyAjax('/favorites', function(html) { document.getElementById('searchFavoriteResults').innerHTML = html; });
+    shittyAjax(baseurl+'/recents',   function(html) { document.getElementById('searchRecentResults').innerHTML = html; });
+    shittyAjax(baseurl+'/favorites', function(html) { document.getElementById('searchFavoriteResults').innerHTML = html; });
 }
 
 /* The search form will get retargetted to this function if JS is enabled

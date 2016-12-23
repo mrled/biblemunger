@@ -6,10 +6,11 @@
 <html>
 <head>
   <title>${pagetitle}</title>
-  <script type="text/javascript" src="/static/bmweb.js"></script>
-  <link type="text/css" rel="stylesheet" href="/static/bmweb.css"></link>
+  ## <script type="text/javascript" src="${baseurl}/munge.js"></script>
+  <script><%include file="munge.js.mako" /></script>
+  <style><<%include file="munge.css.mako" /></style>
   <meta name="og:title" content="${pagetitle}" />
-  <link rel="image_src" href="/static/bible.png" />
+  <link rel="image_src" href="${baseurl}/static/bible.png" />
   ## NOTE: Facebook will ignore any text that contains markup here :( so we cannot embolden our munged terms :(:(
   <meta property="og:description" content="${exreplacement if exreplacement else appsubtitle}" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
@@ -21,7 +22,7 @@
 
 <div id="intro">
   <div id="cutesyFuckingIcon" class="sectionGlyphLeft">
-    <img src="/static/bible.png" alt="The Holy Fucking Scriptures" style="max-width:100%"/>
+    <img src="${baseurl}/static/bible.png" alt="The Holy Fucking Scriptures" style="max-width:100%"/>
   </div>
   <div id="introText" class="sectionContentRight">
     <p>Find some text in the Bible and replace it with other text.</p>
@@ -86,7 +87,7 @@
 
 <div id="searchSubsection">
   <h2>Search and <span class="strikeThru">destroy</span> replace</h2>
-  <form id="mungerForm" method=GET action="/searchForm">
+  <form id="mungerForm" method=GET action="${baseurl}/searchForm">
     <span class="labelAndBox" id="searchField">Search: <input type=text name="search" id="searchBox" size=20 autofocus="true" autocapitalize="off" value="" /></span>
     <span class="labelAndBox" id="replaceField">Replace: <input type=text name="replace" id="replaceBox" size=20 autocapitalize="off" value="" /></span>
     <span id="mungeButton"><input type=submit value="Munge" /></span>
