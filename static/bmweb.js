@@ -56,10 +56,14 @@ function shittyAjax(url, success, failure) {
     request.onreadystatechange = function() {
         if (this.status >= 200 && this.status < 400) {
             console.log(logmsgprefix + "and it succeeded with a response of length " + this.responseText.length);
-            success(this.responseText);
+            if (typeof success === 'function') {
+                success(this.responseText);
+            }
         } else {
             console.log(logmsgprefix + "but the server returned an error");
-            failure(this);
+            if (typeof failure === 'function') {
+                failure(this);
+            }
         }
     };
     request.onerror = function() {
