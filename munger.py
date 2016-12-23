@@ -35,7 +35,7 @@ class Munger(object):
 
     def __init__(self, lockableconn, bible, censor, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
         global scriptdir
-        self._bible = bible
+        self.bible = bible
         self.censor = censor
         self.connection = lockableconn
         self.apptitle = "biblemunger"
@@ -56,14 +56,12 @@ class Munger(object):
         exreplacement = None
         results = None
         if search and replace:
-            self.recents.put(search, replace)
-            results = self.search.get(search, replace)
             logging.debug("Search/replace: {}/{}".format(search, replace))
+            results = self.bible.search(search)
+            self.addsave('recents', search, replace)
             pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
-            # TODO: put a method for finding the shortest verse matching a search on the bible object?
-            verses = self._bible.search(search)
-            if len(verses) > 0:
-                shortestresult = min([v.text for v in verses], key=len)
+            if len(results) > 0:
+                shortestresult = min([v.text for v in results], key=len)
                 exreplacement = re.sub(search, replace, shortestresult)
                 logging.debug("Found a verse! Example replacement: {}".format(exreplacement))
         return {
@@ -91,7 +89,7 @@ class Munger(object):
         if savetype not in self.tablenames.keys():
             raise Exception("Invalid savetype: " + savetype)
         if not force:
-            if not self.writeable or self.censor.blacklisted(replace):
+            if not self.censor.blacklisted(replace):
                 return
         esearch = html.escape(search)
         ereplace = html.escape(replace)
