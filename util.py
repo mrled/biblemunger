@@ -19,7 +19,7 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
 
         # Get the base URL from cherrypy, and make sure that's always passed to the template renderer
         # That way, the 'baseurl' variable is always available, and functions that return these rendered templates don't have to remember to do anything before they can use it
-        print('baseurl: ', cherrypy.url('/'))
+        # NOTE: This always has a trailing slash
         env.update({'baseurl': cherrypy.url('/')})
 
         return self.template.render(**env)

@@ -110,7 +110,7 @@ function toggleHideRecents() {
 }
 
 function searchReplace(search, replace) {
-    shittyAjax(baseurl+'/search/'+search+'/'+replace+'/', function(html) {
+    shittyAjax(baseurl+'search/'+search+'/'+replace+'/', function(html) {
         document.getElementById("results").innerHTML = html;
         getSavedSearches();
     });
@@ -121,8 +121,8 @@ function searchReplace(search, replace) {
  * elementId: the ID of an element which we will replace with the search results
  */
 function getSavedSearches() {
-    shittyAjax(baseurl+'/recents',   function(html) { document.getElementById('searchRecentResults').innerHTML = html; });
-    shittyAjax(baseurl+'/favorites', function(html) { document.getElementById('searchFavoriteResults').innerHTML = html; });
+    shittyAjax(baseurl+'recents',   function(html) { document.getElementById('searchRecentResults').innerHTML = html; });
+    shittyAjax(baseurl+'favorites', function(html) { document.getElementById('searchFavoriteResults').innerHTML = html; });
 }
 
 /* The search form will get retargetted to this function if JS is enabled
@@ -131,7 +131,7 @@ function getSavedSearches() {
 function submitSearchForm() {
     var search  = document.getElementById("searchBox").value,
         replace = document.getElementById("replaceBox").value;
-    history.pushState(null, null, '/'+search+'/'+replace+'/');
+    history.pushState(null, null, baseurl+search+'/'+replace+'/');
     searchReplace(search, replace);
 }
 
