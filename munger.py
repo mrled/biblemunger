@@ -14,7 +14,6 @@ sys.path = [scriptdir] + sys.path
 import bible  # noqa
 import util   # noqa
 
-
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
 
 
@@ -50,7 +49,7 @@ class Munger(object):
 
     @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
-    @cherrypy.tools.mako(filename='munge.mako')
+    @cherrypy.tools.mako(filename='munge.html.mako')
     def munge(self, search=None, replace=None, **posargs):
         pagetitle = self.apptitle
         exreplacement = None
@@ -114,12 +113,12 @@ class Munger(object):
                 dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablenames['favorites']))
 
     @cherrypy.expose
-    @cherrypy.tools.mako(filename="saved.mako")
+    @cherrypy.tools.mako(filename="saved.html.mako")
     def recents(self):
         return {'pairs': self._saved('recents')}
 
     @cherrypy.expose
-    @cherrypy.tools.mako(filename="saved.mako")
+    @cherrypy.tools.mako(filename="saved.html.mako")
     def favorites(self):
         return {'pairs': self._saved('favorites')}
 
@@ -136,7 +135,7 @@ class Munger(object):
 
     @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
-    @cherrypy.tools.mako(filename='results.mako')
+    @cherrypy.tools.mako(filename='results.html.mako')
     def search(self, search=None, replace=None, **posargs):
         if not search and replace:
             raise cherrypy.HTTPError(400, "Both 'search' and 'replace' arguments are required")

@@ -73,14 +73,14 @@
   <script>toggleHideFavorites()</script>
   <p>These are some of my favorites:</p>
   <div id="searchFavoriteResults">
-    <%include file="saved.mako" args="pairs=favorites" />
+    <%include file="saved.html.mako" args="pairs=favorites" />
   </div>
 </div>
 <div id="searchRecents">
   <script>toggleHideRecents()</script>
   <p>Here are some recent searches by users:</p>
   <div id="searchRecentResults">
-    <%include file="saved.mako" args="pairs=recents" />
+    <%include file="saved.html.mako" args="pairs=recents" />
   </div>
 </div>
 
@@ -95,7 +95,7 @@
 </div>
 
 <div id="results">
-  <%include file="results.mako" args="search=search,replace=replace,verses=results" />
+  <%include file="results.html.mako" args="search=search,replace=replace,verses=results" />
 </div>
 
 
