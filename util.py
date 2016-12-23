@@ -16,10 +16,17 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
     def __call__(self):
         env = globals().copy()
         env.update(self.next_handler())
+
+        # Get the base URL from cherrypy, and make sure that's always passed to the template renderer
+        # That way, the 'baseurl' variable is always available, and functions that return these rendered templates don't have to remember to do anything before they can use it
+        print('baseurl: ', cherrypy.url('/'))
+        env.update({'baseurl': cherrypy.url('/')})
+
         return self.template.render(**env)
 
 
 class MakoLoader(object):
+    """A CherryPy loader for Mako templates which caches the templates in memory when they are loaded first time"""
 
     def __init__(self):
         self.lookups = {}
