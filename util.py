@@ -1,4 +1,6 @@
+import base64
 import json
+import os
 import sqlite3
 import threading
 
@@ -6,21 +8,41 @@ import cherrypy
 from mako.lookup import TemplateLookup
 
 
+scriptdir = os.path.dirname(os.path.realpath(__file__))
+
+
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
-    """Callable which sets response.body"""
+    """Callable which sets response.body
+
+    Note that we provide some additional variable substitutions to the template, which all templates that are rendered using this handler may use without explicitly passing. For instance, the 'baseurl' variable is the base URL of the application.
+    """
 
     def __init__(self, template, next_handler):
         self.template = template
         self.next_handler = next_handler
 
     def __call__(self):
+
+        def dataUriFromStaticFile(filename, datatype):
+            """Given a file relative to the static/ directory, return a data: URI containing a representation in base64
+
+            filename: A file, relative to the static/ directory
+            datatype: A data type for the URL, such as "image/png"
+            """
+            filepath = os.path.join(scriptdir, 'static', filename)
+            with open(filepath, 'rb') as f:
+                encoded = base64.b64encode(f.read()).decode()
+            return "data:{};base64,{}".format(datatype, encoded)
+
         env = globals().copy()
         env.update(self.next_handler())
+        env.update({
 
-        # Get the base URL from cherrypy, and make sure that's always passed to the template renderer
-        # That way, the 'baseurl' variable is always available, and functions that return these rendered templates don't have to remember to do anything before they can use it
-        # NOTE: This always has a trailing slash
-        env.update({'baseurl': cherrypy.url('/')})
+            # The base URL of the application, wherever it's mounted
+            'baseurl': cherrypy.url('/'),
+
+            # A simple way to get a data: URL for a given static file
+            'dataUriFromStaticFile': dataUriFromStaticFile})
 
         return self.template.render(**env)
 

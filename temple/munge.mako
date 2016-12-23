@@ -21,7 +21,7 @@
 
 <div id="intro">
   <div id="cutesyFuckingIcon" class="sectionGlyphLeft">
-    <img src="${baseurl}static/bible.png" alt="The Holy Fucking Scriptures" style="max-width:100%"/>
+    <img alt="The Holy Fucking Scriptures" style="max-width:100%" src="${dataUriFromStaticFile('bible.png', 'image/png')}" />
   </div>
   <div id="introText" class="sectionContentRight">
     <p>Find some text in the Bible and replace it with other text.</p>
