@@ -50,6 +50,22 @@ class Munger(object):
         raise cherrypy.HTTPRedirect('munge')
 
     @cherrypy.expose
+    @cherrypy.popargs('start', 'end')
+    @cherrypy.tools.mako(filename='passage.html.mako')
+    def passage(self, start=None, end=None, **posargs):
+        if not start:
+            raise cherrypy.HTTPError(400, "Bad request")
+        return {
+            'pagetitle':      "{} &em; {}".format(start, end),
+            'apptitle':       self.apptitle,
+            'appsubtitle':    self.appsubtitle,
+            'recents':        self._saved('recents'),
+            'favorites':      self._saved('favorites'),
+            'start':          start,
+            'end':            end,
+            'filterinuse':    self.filtering}
+
+    @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
     @cherrypy.tools.mako(filename='munge.html.mako')
     def munge(self, search=None, replace=None, **posargs):
