@@ -34,12 +34,11 @@ class Munger(object):
         'recents': 'recent_searches',
         'favorites': 'favorite_searches'}
 
-    def __init__(self, lockableconn, bible, censor, debug=False, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
+    def __init__(self, lockableconn, bible, censor, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
         global scriptdir
         self.bible = bible
         self.censor = censor
         self.connection = lockableconn
-        self.debug = debug
         self.apptitle = "biblemunger"
         self.appsubtitle = "provocative text replacement in famous literature"
         self.filtering = False if censor is ImpotentCensor else True
@@ -70,7 +69,6 @@ class Munger(object):
             'pagetitle':      pagetitle,
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
-            'debug':          self.debug,
             'exreplacement':  exreplacement,
             'recents':        self._saved('recents'),
             'favorites':      self._saved('favorites'),
