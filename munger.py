@@ -15,6 +15,8 @@ import bible  # noqa
 import util   # noqa
 
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
+log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class ImpotentCensor(object):
@@ -56,14 +58,14 @@ class Munger(object):
         exreplacement = None
         results = None
         if search and replace:
-            logging.debug("Search/replace: {}/{}".format(search, replace))
+            log.debug("Search/replace: {}/{}".format(search, replace))
             results = self.bible.search(search)
             self.addsave('recents', search, replace)
             pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
             if len(results) > 0:
                 shortestresult = min([v.text for v in results], key=len)
                 exreplacement = re.sub(search, replace, shortestresult)
-                logging.debug("Found a verse! Example replacement: {}".format(exreplacement))
+                log.debug("Found a verse! Example replacement: {}".format(exreplacement))
         return {
             'pagetitle':      pagetitle,
             'apptitle':       self.apptitle,
@@ -100,10 +102,10 @@ class Munger(object):
             params = (esearch, ereplace)
             dbconn.cursor.execute(testsql, params)
             if dbconn.cursor.fetchall() == []:
-                logging.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablenames[savetype]))
+                log.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablenames[savetype]))
                 dbconn.cursor.execute(insertsql, params)
             else:
-                logging.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablenames[savetype]))
+                log.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablenames[savetype]))
 
     def initialize_database(self):
         with self.connection as dbconn:
@@ -158,74 +160,78 @@ class Munger(object):
         raise cherrypy.HTTPRedirect(redirurl)
 
 
-def application(environ=None, start_response=None):
-    """Webserver setup code
+def configure():
+    """Read configuration from the filesystem, and process it for use in my application"""
 
-    If 'environ' and 'start_response' parameters are passed, assume WSGI.
+    configs = [
+        os.path.join(scriptdir, 'biblemunger.config.default.json'),
+        os.path.join(scriptdir, 'biblemunger.config.json')]
+    configuration = {}
+    for config in configs:
+        try:
+            with open(config) as f:
+                c = json.load(f)
+            configuration.update(c)
+            log.debug("Found config file at {}".format(config))
+        except:
+            pass
+    if not configuration:
+        raise Exception("No configuration file was found")
 
-    Otherwise, start cherrypy's built-in webserver.
-    """
+    configuration['dbpath'] = os.path.abspath(configuration['dbpath'])
 
-    global scriptdir
-
-    mode = 'wsgi' if environ and start_response else 'cherrypy'
-
-    configfile = os.path.join(scriptdir, 'biblemunger.config.json')
-    with open(configfile) as f:
-        configuration = json.load(f)
-
-    debug = False
-    loglevel = logging.INFO
     if configuration['debug']:
-        loglevel = logging.DEBUG
-        debug = True
-
+        configuration['loglevel'] = logging.DEBUG
+    else:
+        configuration['loglevel'] = logging.INFO
+    configuration['logformatter'] = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    configuration['loghandlers'] = [logging.StreamHandler(stream=sys.stdout)]
     if configuration['logfile']:
-        logfile = os.path.abspath(configuration['logfile'])
-        logging.basicConfig(filename=logfile, level=loglevel)
-    else:
-        logging.basicConfig(level=loglevel)
-
-    logging.debug("Using config file at {}".format(configfile))
-
-    if os.name == 'nt':
-        dburitemplate = "file:///{}?cache=shared"
-    else:
-        dburitemplate = "file:///{}?cache=shared"
-    dburi = dburitemplate.format(os.path.abspath(configuration['dbpath']))
-    logging.debug("Using SQLite URI: {}".format(dburi))
-
-    lockableconn = util.LockableSqliteConnection(dburi)
-
-    bib = bible.Bible(lockableconn)
-    if not bib.initialized:
-        bib.addversesfromxml(os.path.abspath(configuration['bible']))
+        configuration['logfile'] = os.path.abspath(configuration['logfile'])
+        configuration['loghandlers'] += [logging.FileHandler(configuration['logfile'])]
+    for handler in configuration['loghandlers']:
+        handler.setFormatter(configuration['logformatter'])
 
     if configuration['wordfilter']:
         from wordfilter import Wordfilter
-        censor = Wordfilter()
-        filtering = True
+        configuration['censor'] = Wordfilter()
     else:
-        censor = ImpotentCensor()
-        filtering = False
-    logging.debug("Enabling censorship: {}".format(filtering))
+        configuration['censor'] = ImpotentCensor()
 
-    if mode == 'wsgi':
-        sys.stdout = sys.stderr
-        cherrypy.config.update({'environment': 'embedded'})
-    elif mode == 'cherrypy':
-        cherrypy.config.update({
-            'server.socket_port': configuration['port'],
-            'server.socket_host': configuration['server']})
+    configuration['dburi'] = "file:///{}?cache=shared".format(configuration['dbpath'])
 
-    server = Munger(lockableconn, bib, censor)
+    return configuration
+
+
+def application(environ=None, start_response=None, configuration=configure()):
+    """Webserver setup code
+
+    If 'environ' and 'start_response' parameters are passed, assume WSGI; otherwise, start cherrypy's built-in webserver.
+    """
+
+    log.setLevel(configuration['loglevel'])
+    for handler in configuration['loghandlers']:
+        log.addHandler(handler)
+    log.debug("BibleMunger logging configured")
+
+    lockableconn = util.LockableSqliteConnection(configuration['dburi'])
+    log.debug("Using SQLite URI: {}".format(configuration['dburi']))
+
+    bib = bible.Bible(lockableconn)
+    if not bib.initialized:
+        log.debug("Bible doesn't have its database initialized; initializing...")
+        bib.addversesfromxml(os.path.abspath(configuration['bible']))
+
+    log.debug("Enabling censorship: {}".format(configuration['wordfilter']))
+
+    server = Munger(lockableconn, bib, configuration['censor'])
     for fave in configuration['favorites']:
         server.addsave('favorites', fave['search'], fave['replace'], force=True)
 
     cherrypy.tree.mount(server, '/', {
         '/': {
             'tools.mako.directories': os.path.join(scriptdir, 'temple'),
-            'tools.mako.debug': debug,
+            'tools.mako.debug': configuration['debug'],
             'tools.staticdir.root': scriptdir},
         '/static': {
             'tools.staticdir.on': True,
@@ -234,9 +240,17 @@ def application(environ=None, start_response=None):
             "tools.staticfile.on": True,
             "tools.staticfile.filename": os.path.join(scriptdir, 'static', 'favicon.ico')}})
 
+    mode = 'wsgi' if environ and start_response else 'cherrypy'
     if mode == 'wsgi':
+        log.debug("Returning BibleMunger as WSGI application")
+        sys.stdout = sys.stderr
+        cherrypy.config.update({'environment': 'embedded'})
         return cherrypy.tree(environ, start_response)
     elif mode == 'cherrypy':
+        log.debug("Starting BibleMunger's CherryPy HTTP server")
+        cherrypy.config.update({
+            'server.socket_port': configuration['port'],
+            'server.socket_host': configuration['server']})
         cherrypy.engine.signals.subscribe()
         cherrypy.engine.start()
         cherrypy.engine.block()
