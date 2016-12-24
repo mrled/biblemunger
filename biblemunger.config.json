@@ -12,5 +12,5 @@
         {"search": "staff", "replace": "dick"}
     ],
     "logfile": "biblemunger.log",
-    "loglevel": "DEBUG"
+    "debug": false
 }

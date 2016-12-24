@@ -17,9 +17,10 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
     Note that we provide some additional variable substitutions to the template, which all templates that are rendered using this handler may use without explicitly passing. For instance, the 'baseurl' variable is the base URL of the application.
     """
 
-    def __init__(self, template, next_handler):
+    def __init__(self, template, next_handler, debug=False):
         self.template = template
         self.next_handler = next_handler
+        self.debug = debug
 
     def __call__(self):
 
@@ -42,18 +43,21 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
             'baseurl': cherrypy.url('/'),
 
             # A simple way to get a data: URL for a given static file
-            'dataUriFromStaticFile': dataUriFromStaticFile})
+            'dataUriFromStaticFile': dataUriFromStaticFile,
+
+            # Allow us to add useful debugging behavior at runtime
+            'debug': self.debug})
 
         return self.template.render(**env)
 
 
-class MakoLoader(object):
+class MakoLoader():
     """A CherryPy loader for Mako templates which caches the templates in memory when they are loaded first time"""
 
     def __init__(self):
         self.lookups = {}
 
-    def __call__(self, filename, directories, module_directory=None, collection_size=-1):
+    def __call__(self, filename, directories, module_directory=None, collection_size=-1, debug=False):
         # Find the appropriate template lookup.
         key = (tuple(directories), module_directory)
         try:
@@ -70,7 +74,7 @@ class MakoLoader(object):
 
         # Replace the current handler.
         cherrypy.request.template = lookup.get_template(filename)
-        cherrypy.request.handler = MakoHandler(cherrypy.request.template, cherrypy.request.handler)
+        cherrypy.request.handler = MakoHandler(cherrypy.request.template, cherrypy.request.handler, debug=debug)
 
 
 class DictEncoder(json.JSONEncoder):

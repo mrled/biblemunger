@@ -14,7 +14,18 @@
   <meta property="og:description" content="${exreplacement if exreplacement else appsubtitle}" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
 </head>
-<body><div id="bodyContent">
+<body>
+
+%if debug:
+  <%!
+    import datetime
+  %>
+  <div class="debuggingOnly">
+    <p>Page generated ${datetime.datetime.now()}</p>
+  </div>
+%endif
+
+<div id="bodyContent">
 
 <h1><a href="/">${apptitle}</a></h1>
 <h2 id="subtitleH2">${appsubtitle}</h2>

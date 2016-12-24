@@ -32,11 +32,12 @@ class Munger(object):
         'recents': 'recent_searches',
         'favorites': 'favorite_searches'}
 
-    def __init__(self, lockableconn, bible, censor, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
+    def __init__(self, lockableconn, bible, censor, debug=False, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
         global scriptdir
         self.bible = bible
         self.censor = censor
         self.connection = lockableconn
+        self.debug = debug
         self.apptitle = "biblemunger"
         self.appsubtitle = "provocative text replacement in famous literature"
         self.filtering = False if censor is ImpotentCensor else True
@@ -67,6 +68,7 @@ class Munger(object):
             'pagetitle':      pagetitle,
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
+            'debug':          self.debug,
             'exreplacement':  exreplacement,
             'recents':        self._saved('recents'),
             'favorites':      self._saved('favorites'),
@@ -172,12 +174,12 @@ def application(environ=None, start_response=None):
     with open(configfile) as f:
         configuration = json.load(f)
 
-    if not configuration['loglevel'] or configuration['loglevel'] == "INFO":
-        loglevel = logging.INFO
-    elif configuration['loglevel'] == "DEBUG":
+    debug = False
+    loglevel = logging.INFO
+    if configuration['debug']:
         loglevel = logging.DEBUG
-    else:
-        raise Exception("Log level '{}' is not supported".format(configuration['loglevel']))
+        debug = True
+
     if configuration['logfile']:
         logfile = os.path.abspath(configuration['logfile'])
         logging.basicConfig(filename=logfile, level=loglevel)
@@ -223,6 +225,7 @@ def application(environ=None, start_response=None):
     cherrypy.tree.mount(server, '/', {
         '/': {
             'tools.mako.directories': os.path.join(scriptdir, 'temple'),
+            'tools.mako.debug': debug,
             'tools.staticdir.root': scriptdir},
         '/static': {
             'tools.staticdir.on': True,

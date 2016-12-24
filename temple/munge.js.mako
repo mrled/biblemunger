@@ -6,10 +6,23 @@
  */
 // Please ensure that this always ends in a '/' character
 var baseurl = "${baseurl}"
+var debug;
+if ("${debug}" === "True") {
+    debug = true;
+    console.log("Debugging")
+} else {
+    debug = false;
+}
 
 /******** Generic utility functions
  * Functions in this section should be generic, divorced from my application
  */
+
+function debugPrint(message) {
+    if (debug) {
+        console.log(message)
+    }
+}
 
 function toggleHideId(Id) {
     elem = document.getElementById(Id);
@@ -49,19 +62,19 @@ function shittyAjax(url, success, failure) {
     request.open('GET', url, true);
     request.onreadystatechange = function() {
         if (this.status >= 200 && this.status < 400) {
-            console.log(logmsgprefix + "and it succeeded with a response of length " + this.responseText.length);
+            debugPrint(logmsgprefix + "and it succeeded with a response of length " + this.responseText.length);
             if (typeof success === 'function') {
                 success(this.responseText);
             }
         } else {
-            console.log(logmsgprefix + "but the server returned an error");
+            debugPrint(logmsgprefix + "but the server returned an error");
             if (typeof failure === 'function') {
                 failure(this);
             }
         }
     };
     request.onerror = function() {
-        console.log(logmsgprefix + "but the connection failed")
+        debugPrint(logmsgprefix + "but the connection failed")
     }
     request.send();
     request = null;
@@ -188,10 +201,10 @@ function retargetMungeLinks() {
             addClass(element, 'retargetedMungeLink');
             var pair = getSearchReplaceFromUrl(element.href),
                 newhref = "javascript:searchReplace('"+pair.search+"', '"+pair.replace+"')";
-            console.log("Retargeting "+element.href+" to "+newhref)
+            debugPrint("Retargeting "+element.href+" to "+newhref)
             element.href = newhref;
         }
-        console.log("Could not retarget "+element.href+" because it was already retargeted")
+        debugPrint("Could not retarget "+element.href+" because it was already retargeted")
     });
 }
 
