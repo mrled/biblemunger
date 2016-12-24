@@ -60,16 +60,16 @@ function shittyAjax(url, success, failure) {
     var logmsgprefix = "Requested URL at " + url + " ";
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
-    request.onreadystatechange = function() {
-        if (this.status >= 200 && this.status < 400) {
-            debugPrint(logmsgprefix + "and it succeeded with a response of length " + this.responseText.length);
+    request.onload = function() {
+        if (request.status >= 200 && request.status < 400) {
+            debugPrint(logmsgprefix + "and it succeeded with a status of "+request.status+" and a response of length " + request.responseText.length);
             if (typeof success === 'function') {
-                success(this.responseText);
+                success(request.responseText);
             }
         } else {
             debugPrint(logmsgprefix + "but the server returned an error");
             if (typeof failure === 'function') {
-                failure(this);
+                failure(request);
             }
         }
     };
@@ -80,8 +80,8 @@ function shittyAjax(url, success, failure) {
         }
     }
     request.send();
-    request = null;
 }
+
 
 /* String.startsWith polyfill:
  */
@@ -149,10 +149,19 @@ function toggleHideRecents() {
     getSavedSearches();
 }
 
-function searchReplace(search, replace) {
+/* Run a search/replace operation, and replace the #results div with the results
+ * search: a search term
+ * replace: a term to replace it with
+ * updateHistory: if truthy, call history.pushState() with a URL that will represent the new search
+ */
+function searchReplace(search, replace, updateHistory) {
     shittyAjax(baseurl+'search/'+search+'/'+replace+'/', function(html) {
         document.getElementById("results").innerHTML = html;
-        history.pushState(null, null, baseurl+'munge/'+search+'/'+replace+'/');
+        if (updateHistory) {
+            var newUrl = baseurl+'munge/'+search+'/'+replace+'/';
+            debugPrint("Pushing new URL to history: "+newUrl);
+            history.pushState(null, null, newUrl);
+        }
         getSavedSearches();
         retargetMungeLinks();
     });
@@ -161,6 +170,8 @@ function searchReplace(search, replace) {
 function getSearchReplaceFromUrl(url) {
     if (typeof url === 'undefined') {
         url = window.location.href;
+    } else {
+        url = String(url);
     }
     var suburl = url.substring(baseurl.length);
 
@@ -191,12 +202,11 @@ function getSavedSearches() {
 }
 
 /* The search form will get retargeted to this function if JS is enabled
- * Note that we call history.pushState here; do not call this function during the popstate event or history will break!
  */
 function submitSearchForm() {
     var search  = document.getElementById("searchBox").value,
         replace = document.getElementById("replaceBox").value;
-    searchReplace(search, replace);
+    searchReplace(search, replace, true);
 }
 
 /* Retarget munge links, change to replace results section via AJAX
@@ -208,10 +218,9 @@ function retargetMungeLinks() {
         if (! hasClass(element, 'retargetedMungeLink')) {
             addClass(element, 'retargetedMungeLink');
             var pair = getSearchReplaceFromUrl(element.href);
-            debugPrint("Adding onClick handler for "+element.href);
             element.addEventListener('click', function(event) {
                 event.preventDefault();
-                searchReplace(pair.search, pair.replace);
+                searchReplace(pair.search, pair.replace, true);
             });
         }
     });
@@ -232,12 +241,17 @@ window.onload = function() {
 };
 
 window.addEventListener('popstate', function(event) {
+    var logmsg = "popstate event: ";
     var pair = getSearchReplaceFromUrl(window.location);
     if (pair) {
+        logmsg += "loading "+pair.search+"/"+pair.replace+" results";
         document.getElementById('searchBox').value = pair.search;
         document.getElementById('replaceBox').value = pair.replace;
         searchReplace(pair.search, pair.replace);
         retargetMungeLinks();
+    } else {
+        logmsg += "no pair to load? doing nothing";
     }
+    debugPrint(logmsg);
     getSavedSearches()
 });
