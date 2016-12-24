@@ -36,18 +36,6 @@ function getAnchorElement(url) {
     return elem;
 }
 
-/* Get an array of path components separated by a slash
- */
-function getUrlPathComponents(url) {
-    var elem = getAnchorElement(url);
-
-    // Create an array of components separated by a slash, and eliminate any empty components
-    // (Empty components might crop up if the pathname begins or ends with a slash, or has erroneous double slashes in the middle)
-    var components = elem.pathname.split('/').filter(Boolean); // Just a list of non-empty strings making up path components
-
-    return components;
-}
-
 /* This is my own shitty function for making an HTTP request. It probably suxxx really hard. Sorry ¯\_(ツ)_/¯
  * thanx 2 http://youmightnotneedjquery.com for the confidence I need to make this bad decision
  * NOTE: it doesn't even work at all in IE versions < 9
@@ -77,6 +65,42 @@ function shittyAjax(url, success, failure) {
     }
     request.send();
     request = null;
+}
+
+/* String.startsWith polyfill:
+ */
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position){
+        position = position || 0;
+        return this.substr(position, searchString.length) === searchString;
+    };
+}
+
+function hasClass(element, className) {
+    if (typeof element === 'undefined' || typeof className === 'undefined') {
+        return;
+    }
+    if (element.className.indexOf(className) !== -1) {
+        return true;
+    } else {
+        return false;
+    }
+}
+function addClass(element, className) {
+    if (typeof element === 'undefined' || typeof className === 'undefined') {
+        return;
+    }
+    if (! hasClass(element, className)) {
+        element.className += " "+className;
+    }
+}
+function removeClass(element, className) {
+    if (typeof element === 'undefined' || typeof className === 'undefined') {
+        return;
+    }
+    if (hasClass(element, className)) {
+        element.className = element.className.replace(className, "");
+    }
 }
 
 /******** Application-specific functions
@@ -112,8 +136,27 @@ function toggleHideRecents() {
 function searchReplace(search, replace) {
     shittyAjax(baseurl+'search/'+search+'/'+replace+'/', function(html) {
         document.getElementById("results").innerHTML = html;
+        history.pushState(null, null, baseurl+'munge/'+search+'/'+replace+'/');
         getSavedSearches();
+        retargetMungeLinks();
     });
+}
+
+function getSearchReplaceFromUrl(url) {
+    if (typeof url === 'undefined') {
+        url = window.location.href;
+    }
+    var suburl = url.substring(baseurl.length);
+
+    // Create an array of components separated by a slash, and eliminate any empty components
+    // (Empty components might crop up if the pathname begins or ends with a slash, or has erroneous double slashes in the middle)
+    var components = suburl.split('/').filter(Boolean); // Just a list of non-empty strings making up path components
+
+    var ret = {};
+    if (components[0] == 'munge' && components.length == 3) {
+        ret = {'search': components[1], 'replace': components[2]};
+    }
+    return ret;
 }
 
 /* Get a SavedSearches result
@@ -123,20 +166,36 @@ function searchReplace(search, replace) {
 function getSavedSearches() {
     shittyAjax(baseurl+'recents',   function(html) { document.getElementById('searchRecentResults').innerHTML = html; });
     shittyAjax(baseurl+'favorites', function(html) { document.getElementById('searchFavoriteResults').innerHTML = html; });
+    retargetMungeLinks();
 }
 
-/* The search form will get retargetted to this function if JS is enabled
+/* The search form will get retargeted to this function if JS is enabled
  * Note that we call history.pushState here; do not call this function during the popstate event or history will break!
  */
 function submitSearchForm() {
     var search  = document.getElementById("searchBox").value,
         replace = document.getElementById("replaceBox").value;
-    history.pushState(null, null, baseurl+search+'/'+replace+'/');
     searchReplace(search, replace);
 }
 
-/* Retarget the search form
- * Change the search form to submit via a JS function
+/* Retarget munge links, change to replace results section via AJAX
+ * Downside: requires JS
+ * Upside: can do a partial page reload of just the new results, asynchronously
+ */
+function retargetMungeLinks() {
+    Array.prototype.forEach.call(document.getElementsByClassName('mungeLink'), function(element) {
+        if (! hasClass(element, 'retargetedMungeLink')) {
+            addClass(element, 'retargetedMungeLink');
+            var pair = getSearchReplaceFromUrl(element.href),
+                newhref = "javascript:searchReplace('"+pair.search+"', '"+pair.replace+"')";
+            console.log("Retargeting "+element.href+" to "+newhref)
+            element.href = newhref;
+        }
+        console.log("Could not retarget "+element.href+" because it was already retargeted")
+    });
+}
+
+/* Retarget the search form to submit via a JS function
  * Downside: requires JS
  * Upside: can do a partial page reload of just the new results, asynchronously
  */
@@ -146,22 +205,17 @@ function retargetSearchForm() {
 
 window.onload = function() {
     getSavedSearches();
-    // We have to do this weird syntax with Array.prototype.forEach() because document.getElementsByClassName() doesn't have a forEach() method of its own
-    // https://developer.mozilla.org/en-US/docs/Web/API/Document/getElementsByClassName
-    Array.prototype.forEach.call(document.getElementsByClassName('mungeLink'), function(element) {
-        element.addEventListener("click", function(element) {
-            var components = getUrlPathComponents(element.href)
-            submitSearchForm(components[0], components[1]);
-        })
-    });
+    retargetSearchForm();
+    retargetMungeLinks();
 };
 
 window.addEventListener('popstate', function(event) {
-    var components = getUrlPathComponents();
-    getSavedSearches()
-    if (components.length == 2) {
-        document.getElementById('searchBox').value = components[0];
-        document.getElementById('replaceBox').value = components[1];
-        searchReplace(components[0], components[1]);
+    var pair = getSearchReplaceFromUrl(window.location);
+    if (pair) {
+        document.getElementById('searchBox').value = pair.search;
+        document.getElementById('replaceBox').value = pair.replace;
+        searchReplace(pair.search, pair.replace);
+        retargetMungeLinks();
     }
+    getSavedSearches()
 });
