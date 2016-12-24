@@ -92,6 +92,8 @@ if (!String.prototype.startsWith) {
     };
 }
 
+/* Test for, add, and remove CSS classes from HTML elements
+ */
 function hasClass(element, className) {
     if (typeof element === 'undefined' || typeof className === 'undefined') {
         return;
@@ -233,25 +235,3 @@ function retargetMungeLinks() {
 function retargetSearchForm() {
     document.getElementById('mungerForm').setAttribute('action', 'javascript:submitSearchForm()');
 }
-
-window.onload = function() {
-    getSavedSearches();
-    retargetSearchForm();
-    retargetMungeLinks();
-};
-
-window.addEventListener('popstate', function(event) {
-    var logmsg = "popstate event: ";
-    var pair = getSearchReplaceFromUrl(window.location);
-    if (pair) {
-        logmsg += "loading "+pair.search+"/"+pair.replace+" results";
-        document.getElementById('searchBox').value = pair.search;
-        document.getElementById('replaceBox').value = pair.replace;
-        searchReplace(pair.search, pair.replace);
-        retargetMungeLinks();
-    } else {
-        logmsg += "no pair to load? doing nothing";
-    }
-    debugPrint(logmsg);
-    getSavedSearches()
-});
