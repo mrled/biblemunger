@@ -177,9 +177,14 @@ function getSearchReplaceFromUrl(url) {
  * elementId: the ID of an element which we will replace with the search results
  */
 function getSavedSearches() {
-    shittyAjax(baseurl+'recents',   function(html) { document.getElementById('searchRecentResults').innerHTML = html; });
-    shittyAjax(baseurl+'favorites', function(html) { document.getElementById('searchFavoriteResults').innerHTML = html; });
-    retargetMungeLinks();
+    function gss(url, id) {
+        shittyAjax(url, function(html) {
+            document.getElementById(id).innerHTML = html;
+            retargetMungeLinks();
+        })
+    }
+    gss(baseurl+'recents', 'searchRecentResults');
+    gss(baseurl+'favorites', 'searchFavoriteResults');
 }
 
 /* The search form will get retargeted to this function if JS is enabled
@@ -203,8 +208,9 @@ function retargetMungeLinks() {
                 newhref = "javascript:searchReplace('"+pair.search+"', '"+pair.replace+"')";
             debugPrint("Retargeting "+element.href+" to "+newhref)
             element.href = newhref;
+        } else {
+            debugPrint("Could not retarget "+element.href+" because it was already retargeted");
         }
-        debugPrint("Could not retarget "+element.href+" because it was already retargeted")
     });
 }
 
