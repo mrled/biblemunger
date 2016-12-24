@@ -51,3 +51,16 @@ class LockableSqliteConnectionTestCase(unittest.TestCase):
 
     # def test_locking(self):
     #     raise Exception("TODO: test the locking behavior somehow")
+
+
+class MiscFunctionsTestCase(unittest.TestCase):
+
+    def test_normalizewhitespace(self):
+        self.assertEqual(util.normalizewhitespace("q w e r"), "q w e r")
+        self.assertEqual(util.normalizewhitespace("q  w e r"), "q w e r")
+        self.assertEqual(util.normalizewhitespace("""
+            q  w
+            e r"""), "q w e r")
+        self.assertEqual(util.normalizewhitespace("q {} w e r", 1), "q 1 w e r")
+        self.assertEqual(util.normalizewhitespace("q {} w {} e r", (1, 2)), "q 1 w 2 e r")
+        self.assertEqual(util.normalizewhitespace("q {} w e r", "one"), "q one w e r")

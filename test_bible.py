@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-# Run unit tests with "python -m unittest discover"
-
 import io
-import sqlite3
 import unittest
 
 import bible
@@ -13,7 +10,17 @@ import util
 class BibleTestCase(unittest.TestCase):
 
     testtable = 'testtable'
-    create_table_stmt = "CREATE TABLE testtable (book, chapter, verse, text)"
+
+    create_table_stmt = util.normalizewhitespace("""CREATE TABLE {} (
+        ordinal INTEGER PRIMARY KEY ASC,
+        vid TEXT,
+        book TEXT,
+        chapter INTEGER,
+        verse INTEGER,
+        text TEXT
+    )
+    """, formattokens=testtable)
+
     testverses = [
         bible.BibleVerse('RedBook', 11, 11, 'Tiktik Dragon'),
         bible.BibleVerse('BluBook', 22, 22, 'Dragon Beaman'),
@@ -21,6 +28,7 @@ class BibleTestCase(unittest.TestCase):
         bible.BibleVerse('PrpBook', 44, 44, 'Nessie Mokele'),
         bible.BibleVerse('GrnBook', 55, 55, 'Mokele Adjule'),
         bible.BibleVerse('OrgBook', 66, 66, 'Adjule Tiktik')]
+
     xmlbiblefragment = """<?xml version="1.0" encoding="utf-8"?>
 <!--A random comment, whatever-->
 <XMLBIBLE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="zef2005.xsd" version="2.0.1.18" status="v" biblename="King James Version" type="x-bible" revision="0">
@@ -81,6 +89,14 @@ class BibleTestCase(unittest.TestCase):
             self._bible = bible.Bible(self.dbconn, tablename=self.testtable)
         return self._bible
 
+    def _addverses(self):
+        with self.dbconn as dbconn:
+            dbconn.cursor.execute(self.create_table_stmt)
+            for verse in self.testverses:
+                sql = "INSERT INTO {} (vid, book, chapter, verse, text) values (?, ?, ?, ?, ?)".format(self.testtable)
+                params = (verse.vid, verse.book, verse.chapter, verse.verse, verse.text)
+                dbconn.cursor.execute(sql, params)
+
     def test_bible_init_empty_db(self):
         self.bible
         with self.dbconn as dbconn:
@@ -98,10 +114,7 @@ class BibleTestCase(unittest.TestCase):
         self.assertEqual(result, self.create_table_stmt)
 
     def test_bible_search(self):
-        with self.dbconn as dbconn:
-            dbconn.cursor.execute(self.create_table_stmt)
-            for verse in self.testverses:
-                dbconn.cursor.execute("INSERT INTO {} values (?, ?, ?, ?)".format(self.testtable), (verse.book, verse.chapter, verse.verse, verse.text))
+        self._addverses()
         testverses = [self.testverses[0], self.testverses[-1]]
         verses = self.bible.search("Tiktik")
         self.assertEqual(verses, testverses)
@@ -116,6 +129,26 @@ class BibleTestCase(unittest.TestCase):
     def test_bible_addverses(self):
         self.bible.addverses(self.testverses)
         with self.dbconn as dbconn:
-            dbconn.cursor.execute("SELECT * FROM {}".format(self.testtable))
-            verses = [bible.BibleVerse.fromtuple(v) for v in dbconn.cursor]
+            dbconn.cursor.execute("SELECT book, chapter, verse, text FROM {}".format(self.testtable))
+            verses = [bible.BibleVerse(*v) for v in dbconn.cursor]
         self.assertEqual(verses, self.testverses)
+
+    def test_bible_passage(self):
+        self._addverses()
+        v1 = self.bible.passage('RedBook-11-11')
+        self.assertEqual(v1, [self.testverses[0]])
+
+        v2 = self.bible.passage('RedBook-11-11', 'YelBook-33-33')
+        self.assertEqual(v2, [self.testverses[0], self.testverses[1]])
+
+        with self.assertRaises(Exception):
+            self.bible.passage('YelBook-33-33', 'RedBook-11-11')
+
+        with self.assertRaises(Exception):
+            self.bible.passage('nonexistent')
+
+        with self.assertRaises(Exception):
+            self.bible.passage('nonexistent', 'YelBook-33-33')
+
+        with self.assertRaises(Exception):
+            self.bible.passage('YelBook-33-33', 'nonexistent')

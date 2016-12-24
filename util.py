@@ -1,4 +1,5 @@
 import base64
+import collections
 import json
 import os
 import sqlite3
@@ -158,3 +159,17 @@ class LockableSqliteConnection(object):
         self.lock.acquire()
         self.connection.close()
         self.lock.release()
+
+
+def normalizewhitespace(sql, formattokens=None):
+    """A very stupid function that normalizes whitespace
+
+    This lets me put arbitrary whitespace in a multi line string (the kind w/ 3 quote marks)
+
+    It's useful for languages like SQL which sometimes need newlines and shit for readability, but for which whitespace is not important for execution
+
+    It also lets me indent the text in my multi line strings in those scenarios
+    """
+    if isinstance(formattokens, str) or not isinstance(formattokens, collections.Iterable):
+        formattokens = (formattokens, )
+    return ' '.join(sql.split()).format(*tuple(formattokens))

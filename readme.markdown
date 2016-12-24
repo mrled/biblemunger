@@ -28,6 +28,12 @@ If you want to run from Apache, consider using WSGI:
     </Directory>
     WSGIScriptAlias /biblemunger /path/to/webapps/biblemunger/munger.py
 
+## Running the unit tests
+
+The python `unittest` module is used:
+
+    python -m unittest discover
+
 ## Config file
 
 The configuration file is in the loathesome JSON format, because I am lazy. There is no crying in baseball, and there are no comments in JSON. How chill would life be if we could just express our emotions, possibly when writing comments in our config files? I have literally no idea because we simply do not live in that world.
