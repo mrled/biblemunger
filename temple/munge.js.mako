@@ -207,12 +207,12 @@ function retargetMungeLinks() {
     Array.prototype.forEach.call(document.getElementsByClassName('mungeLink'), function(element) {
         if (! hasClass(element, 'retargetedMungeLink')) {
             addClass(element, 'retargetedMungeLink');
-            var pair = getSearchReplaceFromUrl(element.href),
-                newhref = "javascript:searchReplace('"+pair.search+"', '"+pair.replace+"')";
-            debugPrint("Retargeting "+element.href+" to "+newhref);
-            element.href = newhref;
-        } else {
-            debugPrint("Could not retarget "+element.href+" because it was already retargeted");
+            var pair = getSearchReplaceFromUrl(element.href);
+            debugPrint("Adding onClick handler for "+element.href);
+            element.addEventListener('click', function(event) {
+                event.preventDefault();
+                searchReplace(pair.search, pair.replace);
+            });
         }
     });
 }
