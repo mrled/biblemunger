@@ -32,12 +32,14 @@ If you want to run from Apache, consider using WSGI:
 
 The configuration file is in the loathesome JSON format, because I am lazy. There is no crying in baseball, and there are no comments in JSON. How chill would life be if we could just express our emotions, possibly when writing comments in our config files? I have literally no idea because we simply do not live in that world.
 
+"Simply do not use json for your configs", you smirk. Yes, I thought of that. However, the configparser module does not support arrays (yes, really), and instead of writing a parser myself, I decided to write these beautiful paragraphs.
+
 - `wordfilter`: Set to `true` if you want to censor bad words from the replacement list.
 - `favorites`: A list of search terms and replacement tokens. Useful to define a few of these so that people have some examples on what to search for.
 - `logfile`: If this is set, enable logging to a file
-- `loglevel`: Must be `INFO` or `DEBUG`
+- `debug`: If true, show debugging information
 
-## TODO
+## Roadmap
 
 A random list that should probably be pruned:
 
@@ -55,14 +57,13 @@ A random list that should probably be pruned:
     - How to test CherryPy apps without running the full server: https://bitbucket.org/Lawouach/cherrypy-recipes/src/1a27059966e962be52b2abd91e9709c3ee63cf2d/testing/unit/serverless/test.py?at=default&fileviewer=file-view-default
     - Write integrations tests for the backend
     - Also, test the frontend
-- SQLite searches aren't accounting for whitespice. If you search for " mad " you'll still end up matching "made" etc.
-- Just made everything rely on being installed to '/' on webserver - need to fix that
 - Investigate the need for polyfills for older browsers
     - history.pushState / the popstate event
+    - XMLHttpRequest
 - Minify and compress
-    - Can Python minify my JS, HTML, and CSS?
+    - Python can minify CSS and JS, and even HTML, if you wanna use an external library
+    - However, I was having trouble integrating this with Mako, so I gave up for now
     - Can CherryPy compress it automatically? (If so, will that work when run as WSGI?)
-- Open up dev tools in e.g. Chrome and figure out if I really need *all* those requests - some are redundant but I think I need some extra logic to eliminate the redundancy
 
 ### BibleMunger 2.0: A big update
 
