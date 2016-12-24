@@ -5,11 +5,11 @@
  * These variables come in from Mako. (We then assign them to JavaScript variables so all the code after this is pure valid JS)
  */
 // Please ensure that this always ends in a '/' character
-var baseurl = "${baseurl}"
+var baseurl = "${baseurl}";
 var debug;
 if ("${debug}" === "True") {
     debug = true;
-    console.log("Debugging")
+    console.log("Debugging");
 } else {
     debug = false;
 }
@@ -20,7 +20,7 @@ if ("${debug}" === "True") {
 
 function debugPrint(message) {
     if (debug) {
-        console.log(message)
+        console.log(message);
     }
 }
 
@@ -74,7 +74,10 @@ function shittyAjax(url, success, failure) {
         }
     };
     request.onerror = function() {
-        debugPrint(logmsgprefix + "but the connection failed")
+        debugPrint(logmsgprefix + "but the connection failed");
+        if (typeof failure === 'function') {
+            failure(request);
+        }
     }
     request.send();
     request = null;
@@ -206,7 +209,7 @@ function retargetMungeLinks() {
             addClass(element, 'retargetedMungeLink');
             var pair = getSearchReplaceFromUrl(element.href),
                 newhref = "javascript:searchReplace('"+pair.search+"', '"+pair.replace+"')";
-            debugPrint("Retargeting "+element.href+" to "+newhref)
+            debugPrint("Retargeting "+element.href+" to "+newhref);
             element.href = newhref;
         } else {
             debugPrint("Could not retarget "+element.href+" because it was already retargeted");
