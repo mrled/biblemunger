@@ -42,7 +42,7 @@ class Bible(object):
     def __init__(self, lockableconn, tablename='bible'):
         self.tablename = tablename
         self.connection = lockableconn
-        with self.connection as dbconn:
+        with self.connection.rw as dbconn:
             dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
             createsql = util.normalizewhitespace("""CREATE TABLE {} (
                 ordinal INTEGER PRIMARY KEY ASC,
@@ -70,13 +70,14 @@ class Bible(object):
 
     @property
     def initialized(self):
-        with self.connection as dbconn:
+        """Return True if at least one verse is present; return False otherwise"""
+        with self.connection.ro as dbconn:
             dbconn.cursor.execute("SELECT verse FROM {} LIMIT 1".format(self.tablename))
             result = dbconn.cursor.fetchone()
         return result is not None
 
     def addverses(self, verses):
-        with self.connection as dbconn:
+        with self.connection.rw as dbconn:
             for verse in verses:
                 sql = "INSERT INTO {} (vid, book, chapter, verse, text) values (?, ?, ?, ?, ?)".format(self.tablename)
                 params = (verse.vid, verse.book, verse.chapter, verse.verse, verse.text)
@@ -89,7 +90,7 @@ class Bible(object):
         sql = "SELECT book, chapter, verse, text FROM {} WHERE text LIKE ?".format(self.tablename)
         params = ("%{}%".format(search), )
         verses = []
-        with self.connection as dbconn:
+        with self.connection.ro as dbconn:
             dbconn.cursor.execute("PRAGMA case_sensitive_like = ON;")
             dbconn.cursor.execute(sql, params)
             for result in dbconn.cursor:
@@ -104,7 +105,7 @@ class Bible(object):
         """
 
         verses = []
-        with self.connection as dbconn:
+        with self.connection.ro as dbconn:
             ordinalsql = "SELECT ordinal FROM {} WHERE vid=?".format(self.tablename)
             dbconn.cursor.execute(ordinalsql, (startvid, ))
             startordinal = dbconn.cursor.fetchone()[0]

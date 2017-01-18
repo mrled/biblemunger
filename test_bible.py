@@ -90,7 +90,7 @@ class BibleTestCase(unittest.TestCase):
         return self._bible
 
     def _addverses(self):
-        with self.dbconn as dbconn:
+        with self.dbconn.rw as dbconn:
             dbconn.cursor.execute(self.create_table_stmt)
             for verse in self.testverses:
                 sql = "INSERT INTO {} (vid, book, chapter, verse, text) values (?, ?, ?, ?, ?)".format(self.testtable)
@@ -99,16 +99,16 @@ class BibleTestCase(unittest.TestCase):
 
     def test_bible_init_empty_db(self):
         self.bible
-        with self.dbconn as dbconn:
+        with self.dbconn.ro as dbconn:
             dbconn.cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
             result = dbconn.cursor.fetchone()[0]
         self.assertEqual(result, self.create_table_stmt)
 
     def test_bible_init_initialized_db(self):
-        with self.dbconn as dbconn:
+        with self.dbconn.rw as dbconn:
             dbconn.cursor.execute(self.create_table_stmt)
         self.bible
-        with self.dbconn as dbconn:
+        with self.dbconn.ro as dbconn:
             dbconn.cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.testtable))
             result = dbconn.cursor.fetchone()[0]
         self.assertEqual(result, self.create_table_stmt)
@@ -128,7 +128,7 @@ class BibleTestCase(unittest.TestCase):
 
     def test_bible_addverses(self):
         self.bible.addverses(self.testverses)
-        with self.dbconn as dbconn:
+        with self.dbconn.ro as dbconn:
             dbconn.cursor.execute("SELECT book, chapter, verse, text FROM {}".format(self.testtable))
             verses = [bible.BibleVerse(*v) for v in dbconn.cursor]
         self.assertEqual(verses, self.testverses)

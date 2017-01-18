@@ -96,7 +96,7 @@ class Munger(object):
     def _saved(self, savetype):
         if savetype not in self.tablenames.keys():
             raise Exception("Invalid savetype: " + savetype)
-        with self.connection as dbconn:
+        with self.connection.ro as dbconn:
             dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablenames[savetype]))
             results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
         return results
@@ -110,7 +110,8 @@ class Munger(object):
                 return
         esearch = html.escape(search)
         ereplace = html.escape(replace)
-        with self.connection as dbconn:
+        # TODO: break into separate calls, only doing rw if necessary?
+        with self.connection.rw as dbconn:
             testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablenames[savetype])
             insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablenames[savetype])
             params = (esearch, ereplace)
@@ -122,7 +123,7 @@ class Munger(object):
                 log.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablenames[savetype]))
 
     def initialize_database(self):
-        with self.connection as dbconn:
+        with self.connection.rw as dbconn:
             dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['recents']))
             if not dbconn.cursor.fetchone():
                 dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablenames['recents']))

@@ -44,7 +44,7 @@ class LockableSqliteConnectionTestCase(unittest.TestCase):
         self.lockableconn.close()
 
     def test_lsc(self):
-        with self.lockableconn as dbconn:
+        with self.lockableconn.ro as dbconn:
             dbconn.cursor.execute("SELECT 1")
             result = dbconn.cursor.fetchone()[0]
         self.assertEqual(result, 1)

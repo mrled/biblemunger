@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 import threading
+# import urllib.parse
 
 import cherrypy
 from mako.lookup import TemplateLookup
@@ -96,7 +97,7 @@ class DictEncoder(json.JSONEncoder):
             yield chunk.encode("utf-8")
 
 
-class LockableSqliteConnection(object):
+class LockableSqliteConnection():
     """A class, usable as an argument to a 'with' statement, that has a sqlite3.Connection object, a sqlite3.Cursor object, and a threading.Lock object
 
     When the 'with' statement is begun, the internal cursor object is allocated, and the internal lock is acquired. When the 'with' statements terminates, the internal cursor object is closed, the internal connection object is committed, and the internal lock object is released. Exiting the 'with' statement does *not* close the connection; the caller is responsible for this, but we do provide a convenience method to do it.
@@ -132,33 +133,88 @@ class LockableSqliteConnection(object):
                 cursor.close()
     """
 
-    def __init__(self, dburi):
-        self.lock = threading.Lock()
-        self.connection = sqlite3.connect(dburi, uri=True, check_same_thread=False)
-        self.cursor = None
+    class Lsc():
 
-    def __enter__(self):
-        self.lock.acquire()
-        self.cursor = self.connection.cursor()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.lock.release()
-        self.connection.commit()
-        # I've seen self.cursor be None before, but I'm not sure why
-        # Attempting to call a method on None will throw an exception, though, so we'll check for it first
-        if self.cursor is not None:
-            self.cursor.close()
+        def __init__(self, connection, rw=False):
+            self.lock = threading.Lock()
+            self.connection = connection
             self.cursor = None
+            self.rw = rw
+
+        def __enter__(self):
+            if self.rw:
+                self.lock.acquire()
+            self.cursor = self.connection.cursor()
+            return self
+
+        def __exit__(self, type, value, traceback):
+            if self.rw:
+                self.lock.release()
+                self.connection.commit()
+            # I've seen self.cursor be None before, but I'm not sure why
+            # Attempting to call a method on None will throw an exception, though, so we'll check for it first
+            if self.cursor is not None:
+                self.cursor.close()
+                self.cursor = None
+
+        def close(self):
+            if self.rw:
+                self.lock.acquire()
+            if self.cursor:
+                self.cursor.close()
+            if self.connection:
+                self.connection.close()
+            if self.rw:
+                self.lock.release()
+
+    def __init__(self, dburi):
+        """Create a LockableSqliteConnection object.
+
+        Assumes the dburi does *not* have the 'mode' querty parameter specified
+        """
+
+        # def paramadd(uri, params):
+        #     """Add parameters to a URI query string"""
+        #     parseduri = list(urllib.parse.urlparse(uri))
+        #     query = dict(urllib.parse.parse_qsl(parseduri[4]))
+        #     query.update(params)
+        #     parseduri[4] = urllib.parse.urlencode(query)
+        #     return urllib.parse.urlunparse(parseduri)
+
+        def tryconnect(dburi):
+            try:
+                return sqlite3.connect(dburi, uri=True, check_same_thread=False)
+            except:
+                print("Failed to connect to database with URI '{}'".format(dburi))
+                raise
+
+        # TODO: Ideally roconn would enforce readonly connections to the databse, but for now it does not do this!
+        # The following code will return 'sqlite3.OperationalError: unable to open database file', but I'm not sure why...
+        # rodburi = paramadd(dburi, {'mode': 'ro'})
+        # roconn = tryconnect(rodburi)
+
+        roconn = tryconnect(dburi)
+        rwconn = tryconnect(dburi)
+        self.ro = self.Lsc(roconn)
+        self.rw = self.Lsc(rwconn, rw=True)
+
+    def __call__(self, mode='r'):
+        if mode == 'r':
+            return self.ro
+        elif mode == 'w':
+            return self.rw
+        else:
+            raise Exception("Invalid mode '{}'".format(mode))
 
     def close(self):
-        """Close the underlying sqlite connection.
+        """Close the underlying sqlite connections.
 
         Waits for current operations to finish. Renders the object basically useless.
         """
-        self.lock.acquire()
-        self.connection.close()
-        self.lock.release()
+        self.ro.close()
+        self.ro = None
+        self.rw.close()
+        self.rw = None
 
 
 def normalizewhitespace(sql, formattokens=None):
