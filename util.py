@@ -149,13 +149,14 @@ class LockableSqliteConnection():
 
         def __exit__(self, type, value, traceback):
             if self.rw:
-                self.lock.release()
                 self.connection.commit()
             # I've seen self.cursor be None before, but I'm not sure why
             # Attempting to call a method on None will throw an exception, though, so we'll check for it first
             if self.cursor is not None:
                 self.cursor.close()
                 self.cursor = None
+            if self.rw:
+                self.lock.release()
 
         def close(self):
             if self.rw:
