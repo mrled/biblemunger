@@ -20,7 +20,7 @@ log.addHandler(logging.NullHandler())
 
 
 class ImpotentCensor(object):
-    """A class which implements Wordfilter's blacklisted() method with one that always returns False"""
+    """A Wordfilter-compatible object that never censors anything"""
 
     def blacklisted(self, string):
         return False
@@ -29,21 +29,83 @@ class ImpotentCensor(object):
         return
 
 
-class Munger(object):
-    tablenames = {
-        'recents': 'recent_searches',
-        'favorites': 'favorite_searches'}
+class SavedSearches():
+    """A database-backed list of saved searches"""
+
+    def __init__(self, lockableconn, tablename, censor):
+        self.connection = lockableconn
+        self.censor = censor
+        self.tablename = tablename
+
+    def initialize_database(self):
+        with self.connection.rw as dbconn:
+            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
+            if not dbconn.cursor.fetchone():
+                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablename))
+
+    def add(self, search, replace, force=False):
+        """Add a search/replace pair"""
+        if not force and self.censor.blacklisted(replace):
+            return
+        esearch = html.escape(search)
+        ereplace = html.escape(replace)
+
+        with self.connection.ro as dbconn:
+            dbconn.cursor.execute(
+                "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename),
+                (esearch, ereplace))
+            present = dbconn.cursor.fetchall()
+        if present:
+            log.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablename))
+        else:
+            log.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablename))
+            with self.connection.rw as dbconn:
+                dbconn.cursor.execute(
+                    "INSERT INTO {} VALUES (?, ?)".format(self.tablename),
+                    (esearch, ereplace))
+
+    def get(self):
+        with self.connection.ro as dbconn:
+            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablename))
+            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
+        return results
+
+
+class MungerVersion():
+    """A way to get the deployment version"""
+
+    def __init__(self, versionfile):
+        self.versionfile = versionfile
+
+    def get(self):
+        if not self._version:
+            try:
+                with open(self.versionfile) as df:
+                    self._version = df.read()
+            except:
+                self._version = "development version"
+        return self.version
+
+
+class Munger():
+    """Provocative text replacement in famous literature"""
+
+    recentstable = 'recent_searches'
+    favoritestable = 'favorite_searches'
 
     def __init__(self, lockableconn, bible, censor, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
         global scriptdir
         self.bible = bible
-        self.censor = censor
         self.connection = lockableconn
         self.apptitle = "biblemunger"
         self.appsubtitle = "provocative text replacement in famous literature"
         self.filtering = False if censor is ImpotentCensor else True
-        self.versionfile = versionfile
         self._version = None
+
+        self._recents = SavedSearches(self.connection, self.recentstable, censor)
+        self._favorites = SavedSearches(self.connection, self.favoritestable, ImpotentCensor())
+
+        self._version = MungerVersion(versionfile)
 
     @cherrypy.expose
     def index(self, *args, **posargs):
@@ -59,8 +121,8 @@ class Munger(object):
             'pagetitle':      "{} &em; {}".format(start, end),
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
-            'recents':        self._saved('recents'),
-            'favorites':      self._saved('favorites'),
+            'recents':        self._recents.get(),
+            'favorites':      self._favorites.get(),
             'start':          start,
             'end':            end,
             'filterinuse':    self.filtering}
@@ -75,7 +137,7 @@ class Munger(object):
         if search and replace:
             log.debug("Search/replace: {}/{}".format(search, replace))
             results = self.bible.search(search)
-            self.addsave('recents', search, replace)
+            self._recents.add(search, replace)
             pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
             if len(results) > 0:
                 shortestresult = min([v.text for v in results], key=len)
@@ -86,71 +148,31 @@ class Munger(object):
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
             'exreplacement':  exreplacement,
-            'recents':        self._saved('recents'),
-            'favorites':      self._saved('favorites'),
+            'recents':        self._recents.get(),
+            'favorites':      self._favorites.get(),
             'search':         search,
             'replace':        replace,
             'results':        results,
             'filterinuse':    self.filtering}
 
-    def _saved(self, savetype):
-        if savetype not in self.tablenames.keys():
-            raise Exception("Invalid savetype: " + savetype)
-        with self.connection.ro as dbconn:
-            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablenames[savetype]))
-            results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
-        return results
-
-    def addsave(self, savetype, search, replace, force=False):
-        """Add a search/replace pair, *bypassing* the censor and/or read-only flags"""
-        if savetype not in self.tablenames.keys():
-            raise Exception("Invalid savetype: " + savetype)
-        if not force:
-            if not self.censor.blacklisted(replace):
-                return
-        esearch = html.escape(search)
-        ereplace = html.escape(replace)
-        # TODO: break into separate calls, only doing rw if necessary?
-        with self.connection.rw as dbconn:
-            testsql = "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablenames[savetype])
-            insertsql = "INSERT INTO {} VALUES (?, ?)".format(self.tablenames[savetype])
-            params = (esearch, ereplace)
-            dbconn.cursor.execute(testsql, params)
-            if dbconn.cursor.fetchall() == []:
-                log.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablenames[savetype]))
-                dbconn.cursor.execute(insertsql, params)
-            else:
-                log.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablenames[savetype]))
-
     def initialize_database(self):
-        with self.connection.rw as dbconn:
-            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['recents']))
-            if not dbconn.cursor.fetchone():
-                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablenames['recents']))
-            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablenames['favorites']))
-            if not dbconn.cursor.fetchone():
-                dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.self.tablenames['favorites']))
+        self._recents.initialize_database()
+        self._favorites.initialize_database()
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename="saved.html.mako")
     def recents(self):
-        return {'pairs': self._saved('recents')}
+        return {'pairs': self._recents.get()}
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename="saved.html.mako")
     def favorites(self):
-        return {'pairs': self._saved('favorites')}
+        return {'pairs': self._favorites.get()}
 
     @cherrypy.expose
     def version(self):
         cherrypy.response.headers['Content-Type'] = "text/plain"
-        if not self._version:
-            try:
-                with open(self.versionfile) as df:
-                    self._version = df.read()
-            except:
-                self._version = "development version"
-        return self.version
+        return self._version.get()
 
     @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
@@ -158,12 +180,10 @@ class Munger(object):
     def search(self, search=None, replace=None, **posargs):
         if not search and replace:
             raise cherrypy.HTTPError(400, "Both 'search' and 'replace' arguments are required")
-        return {'search': search, 'replace': replace, 'verses': self._search(search, replace)}
-
-    def _search(self, search, replace):
-        # NOTE: Actual replacement is done in the template, not here. lol
-        self.addsave('recents', search, replace)
-        return self.bible.search(search)
+        if (search, replace) not in self._favorites.get():
+            self._recents.add(search, replace)
+        # Note: the actual replacement is done in the template itself
+        return {'search': search, 'replace': replace, 'verses': self.bible.search(search)}
 
     @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
@@ -241,7 +261,7 @@ def application(environ=None, start_response=None, configuration=configure()):
 
     server = Munger(lockableconn, bib, configuration['censor'])
     for fave in configuration['favorites']:
-        server.addsave('favorites', fave['search'], fave['replace'], force=True)
+        server._favorites.add(fave['search'], fave['replace'], force=True)
 
     cherrypy.tree.mount(server, '/', {
         '/': {
