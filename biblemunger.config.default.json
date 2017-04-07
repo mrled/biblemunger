@@ -3,16 +3,21 @@
     "dbpath": "biblemunger.sqlite",
     "server": "127.0.0.1",
     "port": 8187,
-    "wordfilter": true,
     "favorites": [
         {"search": "hearts", "replace": "feels"},
         {"search": "stronger", "replace": "swoler"},
         {"search": "smite", "replace": "fuck over"},
         {"search": "thy salvation", "replace": "dat ass"},
-        {"search": "staff", "replace": "dick"}
+        {"search": "staff", "replace": "dick"},
+        {"search": "LORD", "replace": "KickStarter backer"},
+        {"search": "tithe", "replace": "ass, grass, or cash"},
+        {"search": "!", "replace": " D:"},
+        {"search": "Behold", "replace": "Oh shit"},
+        {"search": "Behold", "replace": "Look, buddy"},
+        {"search": "father", "replace": "daddi"},
+        {"search": "shoes", "replace": "fly kicks"}
     ],
     "tablenames": {
-        "recents": "recent_searches",
         "favorites": "favorite_searches",
         "bible": "bible"
     },

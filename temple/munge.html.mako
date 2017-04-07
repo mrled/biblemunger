@@ -36,7 +36,6 @@
 <p>Can't think of anything to search for?</p>
 <p>
   <input type="button" value="Show Favorite Searches" onclick="toggleHideFavorites();" />
-  <input type="button" value="Show Recent Searches" onclick="toggleHideRecents();" />
 </p>
 
 <div id="searchFavorites">
@@ -44,13 +43,6 @@
   <p>These are some of my favorites:</p>
   <div id="searchFavoriteResults">
     <%include file="saved.html.mako" args="pairs=favorites" />
-  </div>
-</div>
-<div id="searchRecents">
-  <script>toggleHideRecents()</script>
-  <p>Here are some recent searches by users:</p>
-  <div id="searchRecentResults">
-    <%include file="saved.html.mako" args="pairs=recents" />
   </div>
 </div>
 

@@ -146,11 +146,6 @@ function toggleHideFavorites() {
     getSavedSearches();
 }
 
-function toggleHideRecents() {
-    toggleHideId('searchRecents');
-    getSavedSearches();
-}
-
 /* Run a search/replace operation, and replace the #results div with the results
  * search: a search term
  * replace: a term to replace it with
@@ -199,7 +194,6 @@ function getSavedSearches() {
             retargetMungeLinks();
         })
     }
-    gss(baseurl+'recents', 'searchRecentResults');
     gss(baseurl+'favorites', 'searchFavoriteResults');
 }
 

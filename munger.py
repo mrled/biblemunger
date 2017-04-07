@@ -20,22 +20,11 @@ log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
-class ImpotentCensor(object):
-    """A Wordfilter-compatible object that never censors anything"""
-
-    def blacklisted(self, string):
-        return False
-
-    def add_words(self, stringArr):
-        return
-
-
 class SavedSearches():
     """A database-backed list of saved searches"""
 
-    def __init__(self, lockableconn, tablename, censor):
+    def __init__(self, lockableconn, tablename):
         self.connection = lockableconn
-        self.censor = censor
         self.tablename = tablename
 
     def initialize_table(self, initialize):
@@ -49,10 +38,8 @@ class SavedSearches():
             if not dbconn.cursor.fetchone():
                 dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablename))
 
-    def add(self, search, replace, force=False):
+    def add(self, search, replace):
         """Add a search/replace pair"""
-        if not force and self.censor.blacklisted(replace):
-            return
         esearch = html.escape(search)
         ereplace = html.escape(replace)
 
@@ -96,13 +83,11 @@ class MungerVersion():
 class Munger():
     """Provocative text replacement in famous literature"""
 
-    def __init__(self, bible, recents, favorites, mungerversion):
+    def __init__(self, bible, favorites, mungerversion):
         self.bible = bible
         self.apptitle = "biblemunger"
         self.appsubtitle = "provocative text replacement in famous literature"
-        self.filtering = recents.censor is not ImpotentCensor
         self._version = None
-        self._recents = recents
         self._favorites = favorites
         self._version = mungerversion
 
@@ -120,11 +105,9 @@ class Munger():
             'pagetitle':      "{} &em; {}".format(start, end),
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
-            'recents':        self._recents.get(),
             'favorites':      self._favorites.get(),
             'start':          start,
-            'end':            end,
-            'filterinuse':    self.filtering}
+            'end':            end}
 
     @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
@@ -136,7 +119,6 @@ class Munger():
         if search and replace:
             log.debug("Search/replace: {}/{}".format(search, replace))
             results = self.bible.search(search)
-            self._recents.add(search, replace)
             pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
             if len(results) > 0:
                 shortestresult = min([v.text for v in results], key=len)
@@ -147,17 +129,10 @@ class Munger():
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
             'exreplacement':  exreplacement,
-            'recents':        self._recents.get(),
             'favorites':      self._favorites.get(),
             'search':         search,
             'replace':        replace,
-            'results':        results,
-            'filterinuse':    self.filtering}
-
-    @cherrypy.expose
-    @cherrypy.tools.mako(filename="saved.html.mako")
-    def recents(self):
-        return {'pairs': self._recents.get()}
+            'results':        results}
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename="saved.html.mako")
@@ -175,8 +150,6 @@ class Munger():
     def search(self, search=None, replace=None, **posargs):
         if not search and replace:
             raise cherrypy.HTTPError(400, "Both 'search' and 'replace' arguments are required")
-        if (search, replace) not in self._favorites.get():
-            self._recents.add(search, replace)
         # Note: the actual replacement is done in the template itself
         return {'search': search, 'replace': replace, 'verses': self.bible.search(search)}
 
@@ -222,12 +195,6 @@ def configure():
     for handler in configuration['loghandlers']:
         handler.setFormatter(configuration['logformatter'])
 
-    if configuration['wordfilter']:
-        from wordfilter import Wordfilter
-        configuration['censor'] = Wordfilter()
-    else:
-        configuration['censor'] = ImpotentCensor()
-
     configuration['dburi'] = "file:///{}?cache=shared".format(configuration['dbpath'])
 
     return configuration
@@ -261,28 +228,15 @@ def application(environ=None,
         log.debug("Bible doesn't have its database initialized; initializing...")
         bib.addversesfromxml(os.path.abspath(configuration['bible']))
 
-    log.debug("Enabling censorship: {}".format(configuration['wordfilter']))
-
-    # Recent searches use the censor:
-    recents = SavedSearches(
-        lockableconn,
-        configuration['tablenames']['recents'],
-        configuration['censor'])
-    recents.initialize_table(initialize)
-
-    # Favorite searches bypass the censor (b/c they're admin-controlled anyway)
-    favorites = SavedSearches(
-        lockableconn,
-        configuration['tablenames']['favorites'],
-        ImpotentCensor())
+    favorites = SavedSearches(lockableconn, configuration['tablenames']['favorites'])
     favorites.initialize_table(initialize)
     for fave in configuration['favorites']:
-        favorites.add(fave['search'], fave['replace'], force=True)
+        favorites.add(fave['search'], fave['replace'])
 
     global versionfile
     vers = MungerVersion(versionfile)
 
-    server = Munger(bib, recents, favorites, vers)
+    server = Munger(bib, favorites, vers)
 
     cherrypy.tree.mount(server, '/', {
         '/': {

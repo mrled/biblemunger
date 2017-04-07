@@ -1,9 +1,6 @@
 import json
 import unittest
 
-from wordfilter import Wordfilter
-
-# import bible
 import munger
 import util
 
@@ -26,31 +23,21 @@ class SavedSearchesTestCase(unittest.TestCase):
         self.dburi = "file:TESTING_MEMORY_DB?mode=memory&cache=shared"
         self.dbconn = util.LockableSqliteConnection(self.dburi)
         self.tablename = "testtable"
-        self.testblasphemy = "BlasphemousGraphemesQwertyuiop"
-        self.wordfilter = Wordfilter()
-        self.wordfilter.add_words([self.testblasphemy])
-
-        self.pairs = {
-            'normal': ('something', 'not blasphemy'),
-            'blasph': ('whatever', self.testblasphemy)}
-        self.tuplepairs = {
-            'normal': [self.pairs['normal']],
-            'blasph': [self.pairs['normal'], self.pairs['blasph']]}
 
     def tearDown(self):
         self.dbconn.close()
 
     def test_initialize_database(self):
-        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor())
+        ss = munger.SavedSearches(self.dbconn, self.tablename)
         create_stmt = "CREATE TABLE {} (search, replace)".format(self.tablename)
         ss.initialize_table(util.InitializationOption.InitIfNone)
         with self.dbconn.ro as dbconn:
             dbconn.cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
-            recents_result = dbconn.cursor.fetchone()[0]
-        self.assertEqual(recents_result, create_stmt)
+            sql_result = dbconn.cursor.fetchone()[0]
+        self.assertEqual(sql_result, create_stmt)
 
     def test_get(self):
-        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor())
+        ss = munger.SavedSearches(self.dbconn, self.tablename)
         ss.initialize_table(util.InitializationOption.InitIfNone)
         result_empty = ss.get()
         with self.dbconn.rw as dbconn:
@@ -62,27 +49,16 @@ class SavedSearchesTestCase(unittest.TestCase):
         self.assertEqual(result_empty, [])
         self.assertEqual(result_full, expected_full)
 
-    def test_add_freespeech(self):
-        ss = munger.SavedSearches(self.dbconn, self.tablename, munger.ImpotentCensor())
+    def test_add(self):
+        ss = munger.SavedSearches(self.dbconn, self.tablename)
         ss.initialize_table(util.InitializationOption.InitIfNone)
-        ss.censor.add_words([self.testblasphemy])
-        ss.add(self.pairs['blasph'][0], self.pairs['blasph'][1])
-        ss.add(self.pairs['normal'][0], self.pairs['normal'][1])
+        pairs = [('testSearchOne', 'testReplaceOne'), ('testSearchTwo', 'testReplaceTwo')]
+        ss.add(*pairs[0])
+        ss.add(*pairs[1])
         with self.dbconn.ro as dbconn:
             dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
             result = dbconn.cursor.fetchall()
-        self.assertEqual(set(self.tuplepairs['blasph']), set(result))
-
-    def test_add_censored(self):
-        ss = munger.SavedSearches(self.dbconn, self.tablename, self.wordfilter)
-        ss.initialize_table(util.InitializationOption.InitIfNone)
-        ss.add(self.pairs['normal'][0], self.pairs['normal'][1])
-        ss.add(self.pairs['blasph'][0], self.pairs['blasph'][1])
-        with self.dbconn.ro as dbconn:
-            dbconn.cursor.execute("SELECT * FROM {}".format(self.tablename))
-            result = dbconn.cursor.fetchall()
-        self.assertEqual(self.tuplepairs['normal'], result)
-
+        self.assertEqual(set(pairs), set(result))
 
 # class MungerVersionTestCase(unittest.TestCase):
 

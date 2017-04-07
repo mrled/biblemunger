@@ -65,9 +65,6 @@
             <li class="halfSpacedList">Note that it will even search/replace just a <em>part</em> of a word. For instance, in the <a href="./?search=servant&replace=uber%20driver">"servant" &rArr; "uber driver"</a> search, note that some verses now refer to "<strong>menuber drivers and maiduber drivers</strong>" (from <strong>menservants and maidservants</strong>)</li>
             <li class="halfSpacedList">However, it does search/replace numbers and punctuation, not just letters, so if the above behavior is undesirable, surround your search and your replacement with spaces. For example, <a href="./?search=servant&replace=uber%20driver">" servant " &rArr; " uber driver "</a> will only find instances of "servant" when it's surrounded by spaces. (This also means that it will not find results of "servant" when followed by punctuation.)</li>
             <li class="halfSpacedList">One final thing to note: because it's so strict, it currently is case sensitive, such that <a href="./?search=LORD&replace=kickstarter+backer">LORD &rArr; kickstarter backer</a> will find completely different results than <a href="./?search=lord&replace=kickstarter+backer">lord &rArr; kickstarter backer</a>, which will find completely different results than <a href="./?search=Lord&replace=kickstarter+backer">Lord &rArr; kickstarter backer</a>. This means that, currently, an uncapitalized search term will never match a word that begins a sentence.</li>
-          %if filterinuse:
-            <li>(Note that there is a rather aggressive <a href="https://github.com/dariusk/wordfilter">word filter</a> in place. It's designed to prevent racist bullshit from polluting this list because some of ya'll fucking suck, but it sometimes triggers on innocuous words as well. If you are replacing something and don't see it appear here, you may have tripped over this edge case.)</li>
-          %endif
           </ul>
         </div>
       </div>

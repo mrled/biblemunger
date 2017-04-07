@@ -8,7 +8,6 @@ Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toas
 - sqlite 3.7.13 (required for shared cache mode)
 - cherrypy: `pip install CherryPy`. Note: CherryPy for Python 3 in Ubuntu 14.04 LTS is version `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a few seconds after it's started with an error like `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not bound on '127.0.0.1'",)`, even if the port open.
 - mako: `pip install Mako`
-- optional: the Wordfilter module: `pip install Wordfilter`
 
 WARNING: It appears that Mako 1.0.6 doesn't work with Python 3.6.0. When I try to install Mako using a `pip` that ships with that version of Python, I get an error like `AttributeError: module 'importlib._bootstrap' has no attribute 'SourceFileLoader'`. Python 3.3, 3.4, and 3.5 have all worked for me.
 
@@ -18,7 +17,7 @@ You can install these dependencies separately, but it's often easiest to use `vi
     python3 -m pip install virtualenv
     python3 -m virtualenv venv
     . venv/bin/activate
-    pip3 install CherryPy Mako Wordfilter
+    pip3 install CherryPy Mako
 
 ## Usage
 
@@ -50,7 +49,6 @@ The configuration file is in the loathesome JSON format, because I am lazy. Ther
 
 "Simply do not use json for your configs", you smirk. Yes, I thought of that. However, the configparser module does not support arrays (yes, really), and instead of writing a parser myself, I decided to write these beautiful paragraphs.
 
-- `wordfilter`: Set to `true` if you want to censor bad words from the replacement list.
 - `favorites`: A list of search terms and replacement tokens. Useful to define a few of these so that people have some examples on what to search for.
 - `logfile`: If this is set, enable logging to a file
 - `debug`: If true, show debugging information
@@ -61,11 +59,9 @@ A random list that should probably be pruned:
 
 - Use better version stamping system and/or something with the `__version__` attribute
 - Handle case, punctuation, whitespace more intuitively
-- Reverse the sorting of the recent searches
 - More consistent layout would be nice, CSS is hard
 - Show most searched
 - Add a spinner for long loads. If you search a very common word rn like "God" it will take a couple of seconds
-- How to paginate the recent searches list? Or how to prune it?
 - Tests
     - Calculate test coverage
     - Write tests until I hit 100% coverage
