@@ -5,19 +5,24 @@ Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toas
 ## Requirements
 
 - Python 3.4+
-- sqlite 3.7.13 (required for shared cache mode)
-- cherrypy: `pip install CherryPy`. Note: CherryPy for Python 3 in Ubuntu 14.04 LTS is version `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a few seconds after it's started with an error like `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not bound on '127.0.0.1'",)`, even if the port open.
+    - 3.4 is required for its version of sqlite (see below)
+    - 3.4 is also required the `ensurepip` module
+    - See below for conflicts with Mako, though
+- sqlite 3.7.13
+    - This version or later is required for shared cache mode, which is used heavily
+- cherrypy: `pip install CherryPy`
+    - Note: CherryPy for Python 3 in Ubuntu 14.04 LTS is version `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a few seconds after it's started with an error like `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not bound on '127.0.0.1'",)`, even if the port free.
 - mako: `pip install Mako`
-
-WARNING: It appears that Mako 1.0.6 doesn't work with Python 3.6.0. When I try to install Mako using a `pip` that ships with that version of Python, I get an error like `AttributeError: module 'importlib._bootstrap' has no attribute 'SourceFileLoader'`. Python 3.3, 3.4, and 3.5 have all worked for me.
+    - It appears Mako 1.0.6 doesn't work with Python 3.6.0 or 3.6.1; when I try to install it using `pip`, I get an error like `AttributeError: module 'importlib._bootstrap' has no attribute 'SourceFileLoader'`. Various versions of Python 3.4 and 3.5 have worked for me in the past, and I'm using 3.5.3 as I type this.
 
 You can install these dependencies separately, but it's often easiest to use `virtualenv`. Here's an example of how to do that with Python 3.4+ (which is required for the `ensurepip` module):
 
-    python3 -m ensurepip
-    python3 -m pip install virtualenv
-    python3 -m virtualenv venv
-    . venv/bin/activate
-    pip3 install CherryPy Mako
+    python3 -m ensurepip                # Make sure you have pip
+    python3 -m pip install virtualenv   # Make sure you have virtualenv
+    python3 -m virtualenv venv          # Create a new virtualenv directory called 'venv'
+    . venv/bin/activate                 # Activate your new virtual environment
+    pip3 install CherryPy Mako          # Now that you've activated, install the dependencies
+    python3 ./__main__.py               # Run BibleMunger in development mode
 
 ## Usage
 
@@ -76,6 +81,7 @@ A random list that should probably be pruned:
     - Python can minify CSS and JS, and even HTML, if you wanna use an external library
     - However, I was having trouble integrating this with Mako, so I gave up for now
     - Can CherryPy compress it automatically? (If so, will that work when run as WSGI?)
+- Figure out why Python 3.6 won't work with Mako?
 
 ### BibleMunger 2.0: A big update
 
