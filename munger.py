@@ -100,12 +100,14 @@ class Munger():
     @cherrypy.tools.mako(filename='passage.html.mako')
     def passage(self, start=None, end=None, **posargs):
         if not start:
-            raise cherrypy.HTTPError(400, "Bad request")
+            raise cherrypy.HTTPError(400, "Bad request: 'start' parameter is required")
+        verses = self.bible.passage(start, endvid=end)
         return {
-            'pagetitle':      "{} &em; {}".format(start, end),
+            'pagetitle':      "{} – {}".format(start, end),
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
             'favorites':      self._favorites.get(),
+            'verses':         verses,
             'start':          start,
             'end':            end}
 
