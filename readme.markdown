@@ -10,6 +10,16 @@ Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toas
 - mako: `pip install Mako`
 - optional: the Wordfilter module: `pip install Wordfilter`
 
+WARNING: It appears that Mako 1.0.6 doesn't work with Python 3.6.0. When I try to install Mako using a `pip` that ships with that version of Python, I get an error like `AttributeError: module 'importlib._bootstrap' has no attribute 'SourceFileLoader'`. Python 3.3, 3.4, and 3.5 have all worked for me.
+
+You can install these dependencies separately, but it's often easiest to use `virtualenv`. Here's an example of how to do that with Python 3.4+ (which is required for the `ensurepip` module):
+
+    python3 -m ensurepip
+    python3 -m pip install virtualenv
+    python3 -m virtualenv venv
+    . venv/bin/activate
+    pip3 install CherryPy Mako Wordfilter
+
 ## Usage
 
 For development use, this will start CherryPy's webserver:
@@ -32,7 +42,7 @@ If you want to run from Apache, consider using WSGI:
 
 The python `unittest` module is used:
 
-    python -m unittest discover
+    python3 -m unittest discover
 
 ## Config file
 
