@@ -70,12 +70,6 @@ A random list that should probably be pruned:
     - Python can minify CSS and JS, and even HTML, if you wanna use an external library
     - However, I was having trouble integrating this with Mako, so I gave up for now
     - Can CherryPy compress it automatically? (If so, will that work when run as WSGI?)
-- LockableSqliteConnection():
-    - Modify this to provide read-only and read-write access to the database, depending on what the caller needs
-    - Consider not locking the database for reads?
-    - I thnk I would have an external class, and an interanal class. The internal class would look mostly like the class does now; the external class would implement a `.open()` (? or maybe a better name) that would return the internal class.
-    - Since the internal class implements `__enter__()` and `__exit__()`, it can be used with the `with` statement; since the `.open()` method will return the internal class, you can `with lsc.open() as whatever:` and it'll work
-    - However, the important new feature is that you can accept other arguments to `.open()` - such as a flag representing read only or read/write access, like the `open()` builtin does
 
 ### BibleMunger 2.0: A big update
 
