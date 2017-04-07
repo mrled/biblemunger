@@ -43,14 +43,16 @@ class Bible(object):
         self.tablename = tablename
         self.connection = lockableconn
         with self.connection.rw as dbconn:
-            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
+            dbconn.cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(
+                    self.tablename))
             createsql = util.normalizewhitespace("""CREATE TABLE {} (
                 ordinal INTEGER PRIMARY KEY ASC,
-                vid TEXT,
-                book TEXT,
-                chapter INTEGER,
-                verse INTEGER,
-                text TEXT
+                vid TEXT UNIQUE NOT NULL,
+                book TEXT NOT NULL,
+                chapter INTEGER NOT NULL,
+                verse INTEGER NOT NULL,
+                text TEXT NOT NULL
             )
             """.format(self.tablename))
             if not dbconn.cursor.fetchone():
@@ -97,32 +99,39 @@ class Bible(object):
                 verses += [BibleVerse(*result)]
         return verses
 
-    def passage(self, startvid, endvid=None):
-        """Return a single verse (if only startvid is provided) or a range between two verses (if an endvid is provided also)
+    def ordinalfromvid(self, vid):
+        """Get a database ordinal integer ID (e.g. 1) from a verse ID (e.g. Genesis-1-1)"""
+        with self.connection.ro as dbconn:
+            dbconn.cursor.execute("SELECT ordinal FROM {} WHERE vid=?".format(self.tablename), (vid,))
+            try:
+                dbid = dbconn.cursor.fetchone()[0]
+            except TypeError:
+                dbid = None
+        return dbid
 
-        startvid: a verse identifier representing the start of the passage
-        endvid: a verse identifier representing the end of the passage
+    def passage(self, startvid, endvid=None):
+        """Return a contiguous set of verses.
+
+        Return a single verse (if only startvid is provided) or a range between two verses (if an endvid is provided also). If the passage is invalid - if either startvid or endvid is nonexistent, or if endvid is before startvid - return an empty set.
+
+        startvid: a verse identifier representing the start of the passage (inclusive)
+        endvid: a verse identifier representing the end of the passage (exclusive)
+
+        Note that because startvid is inclusive but endvid is exclusive, calling passage('Genesis-1-1', 'Genesis-1-3')
+        will result in verse objects representing Gen 1:1 and Gen 1:2 but *not* Gen 1:3.
         """
 
-        verses = []
+        startordinal = self.ordinalfromvid(startvid)
+        if startordinal is None:
+            return []
+        endordinal = self.ordinalfromvid(endvid) if endvid else startordinal +1
+        if endordinal is None or endordinal < startordinal:
+            return []
+
         with self.connection.ro as dbconn:
-            ordinalsql = "SELECT ordinal FROM {} WHERE vid=?".format(self.tablename)
-            dbconn.cursor.execute(ordinalsql, (startvid, ))
-            startordinal = dbconn.cursor.fetchone()[0]
-
-            if not endvid:
-                searchsql = "SELECT book, chapter, verse, text FROM {} WHERE ordinal = ?".format(self.tablename)
-                searchparams = (startordinal, )
-            else:
-                dbconn.cursor.execute(ordinalsql, (endvid, ))
-                endordinal = dbconn.cursor.fetchone()[0]
-                if endordinal <= startordinal:
-                    raise Exception("Invalid passage: endvid comes before startvid")
-                searchsql = "SELECT book, chapter, verse, text FROM {} WHERE ordinal >= ? AND ordinal < ?".format(self.tablename)
-                searchparams = (startordinal, endordinal)
-
-            dbconn.cursor.execute(searchsql, searchparams)
-            for result in dbconn.cursor:
-                verses += [BibleVerse(*result)]
+            dbconn.cursor.execute(
+                "SELECT book, chapter, verse, text FROM {} WHERE ordinal >=? AND ordinal < ?".format(self.tablename),
+                (startordinal, endordinal))
+            verses = [BibleVerse(*result) for result in dbconn.cursor]
 
         return verses

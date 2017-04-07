@@ -13,11 +13,11 @@ class BibleTestCase(unittest.TestCase):
 
     create_table_stmt = util.normalizewhitespace("""CREATE TABLE {} (
         ordinal INTEGER PRIMARY KEY ASC,
-        vid TEXT,
-        book TEXT,
-        chapter INTEGER,
-        verse INTEGER,
-        text TEXT
+        vid TEXT UNIQUE NOT NULL,
+        book TEXT NOT NULL,
+        chapter INTEGER NOT NULL,
+        verse INTEGER NOT NULL,
+        text TEXT NOT NULL
     )
     """, formattokens=testtable)
 
@@ -133,6 +133,15 @@ class BibleTestCase(unittest.TestCase):
             verses = [bible.BibleVerse(*v) for v in dbconn.cursor]
         self.assertEqual(verses, self.testverses)
 
+    def test_bible_ordinalfromvid(self):
+        self.bible.addverses(self.testverses)
+        self.assertEqual(self.bible.ordinalfromvid("RedBook-11-11"), 1)
+        self.assertEqual(self.bible.ordinalfromvid("BluBook-22-22"), 2)
+        self.assertEqual(self.bible.ordinalfromvid("YelBook-33-33"), 3)
+        self.assertEqual(self.bible.ordinalfromvid("PrpBook-44-44"), 4)
+        self.assertEqual(self.bible.ordinalfromvid("GrnBook-55-55"), 5)
+        self.assertEqual(self.bible.ordinalfromvid("OrgBook-66-66"), 6)
+
     def test_bible_passage(self):
         self._addverses()
         v1 = self.bible.passage('RedBook-11-11')
@@ -141,14 +150,7 @@ class BibleTestCase(unittest.TestCase):
         v2 = self.bible.passage('RedBook-11-11', 'YelBook-33-33')
         self.assertEqual(v2, [self.testverses[0], self.testverses[1]])
 
-        with self.assertRaises(Exception):
-            self.bible.passage('YelBook-33-33', 'RedBook-11-11')
-
-        with self.assertRaises(Exception):
-            self.bible.passage('nonexistent')
-
-        with self.assertRaises(Exception):
-            self.bible.passage('nonexistent', 'YelBook-33-33')
-
-        with self.assertRaises(Exception):
-            self.bible.passage('YelBook-33-33', 'nonexistent')
+        self.assertEqual(self.bible.passage('YelBook-33-33', 'RedBook-11-11'), [])
+        self.assertEqual(self.bible.passage('nonexistent'), [])
+        self.assertEqual(self.bible.passage('nonexistent', 'YelBook-33-33'), [])
+        self.assertEqual(self.bible.passage('YelBook-33-33', 'nonexistent'), [])
