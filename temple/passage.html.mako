@@ -1,10 +1,10 @@
 <%inherit file="_base.html.mako"/>
 
 <%block name="ogdescription">
-  <meta property="og:description" content="${start} – ${end}" />
+  <meta property="og:description" content="${vrangelabel}" />
 </%block>
 
-<h2>${start} &ndash; ${end}</h2>
+<h2>${vrangelabel}</h2>
 
 <div class="passage">
   %if verses and len(verses) > 0:

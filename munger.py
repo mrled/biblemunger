@@ -98,15 +98,34 @@ class Munger():
     @cherrypy.expose
     @cherrypy.popargs('start', 'end')
     @cherrypy.tools.mako(filename='passage.html.mako')
-    def passage(self, start=None, end=None, **posargs):
-        if not start:
-            raise cherrypy.HTTPError(400, "Bad request: 'start' parameter is required")
+    def passage(self, vidrange="", **posargs):
+        """Return a contiguous list of verses
+
+        vidrange:   A range of verses, specified by verse id ("vid") and separated by a colon
+                    For example: "startvid:endvid"
+                    The vids are specified like "Genesis-1-1"
+                    The startvid is required. The endvid is optional; if it's not present, just show a single verse
+        """
+        split = vidrange.split(":")
+        if len(split) < 1 or len(split) < 1 or len(split[0]) == 0:
+            raise cherrypy.HTTPError(
+                400,
+                "Bad request: 'vidrange' parameter must be in form 'Genesis-1-1:Genesis-2-1'")
+        start = split[0]
+        end = split[1] if len(split) == 2 else None
+        if end:
+            vrangelabel = "{} – {}".format(start, end)
+        else:
+            vrangelabel = start
+
         verses = self.bible.passage(start, endvid=end)
+
         return {
-            'pagetitle':      "{} – {}".format(start, end),
+            'pagetitle':      vrangelabel,
             'apptitle':       self.apptitle,
             'appsubtitle':    self.appsubtitle,
             'favorites':      self._favorites.get(),
+            'vrangelabel':    vrangelabel,
             'verses':         verses,
             'start':          start,
             'end':            end}
