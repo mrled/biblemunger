@@ -39,10 +39,29 @@ class BibleVerse(object):
 
 class Bible(object):
 
-    def __init__(self, lockableconn, tablename='bible'):
+    def __init__(self, lockableconn, tablename):
         self.tablename = tablename
         self.connection = lockableconn
+
+    @classmethod
+    def parsexml(cls, file):
+        def findelems(base, tagname):
+            return (child for child in base if child.tag == tagname)
+        xmletree = ET.parse(file)
+        verses = []
+        for book in findelems(xmletree.getroot(), 'BIBLEBOOK'):
+            for chapter in findelems(book, 'CHAPTER'):
+                for verse in findelems(chapter, 'VERS'):
+                    verses += [BibleVerse(book.get('bname'), chapter.get('cnumber'), verse.get('vnumber'), verse.text)]
+        return verses
+
+    def initialize_table(self, initialize):
+        if initialize is util.InitializationOption.NoAction:
+            return
         with self.connection.rw as dbconn:
+            if initialize is util.InitializationOption.Reinitialize:
+                dbconn.cursor.execute("DROP TABLE IF EXISTS {}".format(self.tablename))
+                dbconn.connection.commit()
             dbconn.cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(
                     self.tablename))
@@ -58,20 +77,8 @@ class Bible(object):
             if not dbconn.cursor.fetchone():
                 dbconn.cursor.execute(createsql)
 
-    @classmethod
-    def parsexml(cls, file):
-        def findelems(base, tagname):
-            return (child for child in base if child.tag == tagname)
-        xmletree = ET.parse(file)
-        verses = []
-        for book in findelems(xmletree.getroot(), 'BIBLEBOOK'):
-            for chapter in findelems(book, 'CHAPTER'):
-                for verse in findelems(chapter, 'VERS'):
-                    verses += [BibleVerse(book.get('bname'), chapter.get('cnumber'), verse.get('vnumber'), verse.text)]
-        return verses
-
     @property
-    def initialized(self):
+    def hasverses(self):
         """Return True if at least one verse is present; return False otherwise"""
         with self.connection.ro as dbconn:
             dbconn.cursor.execute("SELECT verse FROM {} LIMIT 1".format(self.tablename))

@@ -14,6 +14,7 @@ sys.path = [scriptdir] + sys.path
 import bible  # noqa
 import util   # noqa
 
+versionfile = os.path.join(scriptdir, 'deploymentinfo.txt')
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -37,8 +38,13 @@ class SavedSearches():
         self.censor = censor
         self.tablename = tablename
 
-    def initialize_database(self):
+    def initialize_table(self, initialize):
+        if initialize is util.InitializationOption.NoAction:
+            return
         with self.connection.rw as dbconn:
+            if initialize is util.InitializationOption.Reinitialize:
+                dbconn.cursor.execute("DROP TABLE IF EXISTS {}".format(self.tablename))
+                dbconn.connection.commit()
             dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
             if not dbconn.cursor.fetchone():
                 dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablename))
@@ -90,22 +96,15 @@ class MungerVersion():
 class Munger():
     """Provocative text replacement in famous literature"""
 
-    recentstable = 'recent_searches'
-    favoritestable = 'favorite_searches'
-
-    def __init__(self, lockableconn, bible, censor, versionfile=os.path.join(scriptdir, 'deploymentinfo.txt')):
-        global scriptdir
+    def __init__(self, bible, recents, favorites, mungerversion):
         self.bible = bible
-        self.connection = lockableconn
         self.apptitle = "biblemunger"
         self.appsubtitle = "provocative text replacement in famous literature"
-        self.filtering = False if censor is ImpotentCensor else True
+        self.filtering = recents.censor is not ImpotentCensor
         self._version = None
-
-        self._recents = SavedSearches(self.connection, self.recentstable, censor)
-        self._favorites = SavedSearches(self.connection, self.favoritestable, ImpotentCensor())
-
-        self._version = MungerVersion(versionfile)
+        self._recents = recents
+        self._favorites = favorites
+        self._version = mungerversion
 
     @cherrypy.expose
     def index(self, *args, **posargs):
@@ -154,10 +153,6 @@ class Munger():
             'replace':        replace,
             'results':        results,
             'filterinuse':    self.filtering}
-
-    def initialize_database(self):
-        self._recents.initialize_database()
-        self._favorites.initialize_database()
 
     @cherrypy.expose
     @cherrypy.tools.mako(filename="saved.html.mako")
@@ -238,8 +233,16 @@ def configure():
     return configuration
 
 
-def application(environ=None, start_response=None, configuration=configure()):
+def application(environ=None,
+                start_response=None,
+                configuration=configure(),
+                initialize=util.InitializationOption.NoAction):
     """Webserver setup code
+
+    environ: passed from WSGI (if not present, use cherrypy's built-in webserver)
+    start_response: passed from WSGI (if not present, use cherrypy's built-in webserver)
+    configuration: a configuration object, normally from the configure() function
+    initialize: controls db initialization. See util.InitializationOption
 
     If 'environ' and 'start_response' parameters are passed, assume WSGI; otherwise, start cherrypy's built-in webserver.
     """
@@ -252,16 +255,34 @@ def application(environ=None, start_response=None, configuration=configure()):
     lockableconn = util.LockableSqliteConnection(configuration['dburi'])
     log.debug("Using SQLite URI: {}".format(configuration['dburi']))
 
-    bib = bible.Bible(lockableconn)
-    if not bib.initialized:
+    bib = bible.Bible(lockableconn, configuration['tablenames']['bible'])
+    bib.initialize_table(initialize)
+    if not bib.hasverses:
         log.debug("Bible doesn't have its database initialized; initializing...")
         bib.addversesfromxml(os.path.abspath(configuration['bible']))
 
     log.debug("Enabling censorship: {}".format(configuration['wordfilter']))
 
-    server = Munger(lockableconn, bib, configuration['censor'])
+    # Recent searches use the censor:
+    recents = SavedSearches(
+        lockableconn,
+        configuration['tablenames']['recents'],
+        configuration['censor'])
+    recents.initialize_table(initialize)
+
+    # Favorite searches bypass the censor (b/c they're admin-controlled anyway)
+    favorites = SavedSearches(
+        lockableconn,
+        configuration['tablenames']['favorites'],
+        ImpotentCensor())
+    favorites.initialize_table(initialize)
     for fave in configuration['favorites']:
-        server._favorites.add(fave['search'], fave['replace'], force=True)
+        favorites.add(fave['search'], fave['replace'], force=True)
+
+    global versionfile
+    vers = MungerVersion(versionfile)
+
+    server = Munger(bib, recents, favorites, vers)
 
     cherrypy.tree.mount(server, '/', {
         '/': {

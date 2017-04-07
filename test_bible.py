@@ -86,7 +86,8 @@ class BibleTestCase(unittest.TestCase):
         This way, our tests can control when to run the bible.Bible.__init__ code
         """
         if not self._bible:
-            self._bible = bible.Bible(self.dbconn, tablename=self.testtable)
+            self._bible = bible.Bible(self.dbconn, self.testtable)
+            self._bible.initialize_table(util.InitializationOption.InitIfNone)
         return self._bible
 
     def _addverses(self):

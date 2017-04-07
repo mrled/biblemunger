@@ -11,6 +11,11 @@
         {"search": "thy salvation", "replace": "dat ass"},
         {"search": "staff", "replace": "dick"}
     ],
+    "tablenames": {
+        "recents": "recent_searches",
+        "favorites": "favorite_searches",
+        "bible": "bible"
+    },
     "logfile": "biblemunger.log",
     "debug": false
 }

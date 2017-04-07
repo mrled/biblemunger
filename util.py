@@ -6,6 +6,8 @@ import sqlite3
 import threading
 # import urllib.parse
 
+from enum import Enum
+
 import cherrypy
 from mako.lookup import TemplateLookup
 
@@ -230,3 +232,16 @@ def normalizewhitespace(sql, formattokens=None):
     if isinstance(formattokens, str) or not isinstance(formattokens, collections.Iterable):
         formattokens = (formattokens, )
     return ' '.join(sql.split()).format(*tuple(formattokens))
+
+
+class InitializationOption(Enum):
+    """Options that control database table initialization
+
+    NoAction:       Assume the table is already initialized
+    InitIfNone      If the table doesn't exist, run the table creation SQL; if it does, do nothing
+    Reinitialize:   Drop the table and then initialize it
+    """
+
+    NoAction = 0
+    InitIfNone = 1
+    Reinitialize = 2
