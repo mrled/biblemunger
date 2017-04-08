@@ -132,7 +132,7 @@ class Munger():
 
     @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
-    @cherrypy.tools.mako(filename='index.html.mako')
+    @cherrypy.tools.mako(filename='munge.html.mako')
     def munge(self, search=None, replace=None, **posargs):
         pagetitle = self.apptitle
         exreplacement = None

@@ -6,9 +6,8 @@
 
 <%block name="headscript">
   <script>
-
     window.onload = function() {
-        getSavedSearches();
+        // getSavedSearches();
         retargetSearchForm();
         retargetMungeLinks();
     };
@@ -26,36 +25,23 @@
             logmsg += "no pair to load? doing nothing";
         }
         debugPrint(logmsg);
-        getSavedSearches()
+        // getSavedSearches()
     });
-
   </script>
 </%block>
 
-<h2>Suggestions</h2>
-<p>Can't think of anything to search for?</p>
-<p>
-  <input type="button" value="Show Favorite Searches" onclick="toggleHideFavorites();" />
-</p>
-
-<div id="searchFavorites">
-  <script>toggleHideFavorites()</script>
-  <p>These are some of my favorites:</p>
-  <div id="searchFavoriteResults">
-    <%include file="saved.html.mako" args="pairs=favorites" />
+  <header>
+    <img src="${baseurl}static/biblemunger-logo-1-noword.svg"/>
+  </header>
+  <div class="content-area munging-page">
+    <form id="mungerForm" method=GET action="${baseurl}searchForm">
+      <input type="text" id="searchBox"  placeholder="Search for"   autocapitalize="off" autofocus="true" >
+      <input type="text" id="replaceBox" placeholder="Replace with" autocapitalize="off">
+      <input type="submit" value="Munge" class="form-button std-button">
+    </form>
+    <script>retargetSearchForm()</script>
   </div>
-</div>
 
-<div id="searchSubsection">
-  <h2>Search and <span class="strikeThru">destroy</span> replace</h2>
-  <form id="mungerForm" method=GET action="${baseurl}searchForm">
-    <span class="labelAndBox" id="searchField">Search: <input type=text name="search" id="searchBox" size=20 autofocus="true" autocapitalize="off" value="" /></span>
-    <span class="labelAndBox" id="replaceField">Replace: <input type=text name="replace" id="replaceBox" size=20 autocapitalize="off" value="" /></span>
-    <span id="mungeButton"><input type=submit value="Munge" /></span>
-  </form>
-  <script>retargetSearchForm()</script>
-</div>
-
-<div id="results">
+<div class="results-area">
   <%include file="results.html.mako" args="search=search,replace=replace,verses=results" />
 </div>

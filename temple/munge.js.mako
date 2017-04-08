@@ -141,11 +141,6 @@ function emboldenMunged() {
     }
 }
 
-function toggleHideFavorites() {
-    toggleHideId('searchFavorites');
-    getSavedSearches();
-}
-
 /* Run a search/replace operation, and replace the #results div with the results
  * search: a search term
  * replace: a term to replace it with
@@ -153,13 +148,17 @@ function toggleHideFavorites() {
  */
 function searchReplace(search, replace, updateHistory) {
     shittyAjax(baseurl+'search/'+search+'/'+replace+'/', function(html) {
-        document.getElementById("results").innerHTML = html;
+
+        var resultsAreaList = document.getElementsByClassName("results-area");
+        for (var idx=0; idx<resultsAreaList.length; idx++) {
+            resultsAreaList[idx].innerHTML = html;
+        }
+
         if (updateHistory) {
             var newUrl = baseurl+'munge/'+search+'/'+replace+'/';
             debugPrint("Pushing new URL to history: "+newUrl);
             history.pushState(null, null, newUrl);
         }
-        getSavedSearches();
         retargetMungeLinks();
     });
 }

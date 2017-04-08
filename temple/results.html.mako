@@ -4,17 +4,19 @@ import re
 %>
 
 %if search and replace:
-  <h2>${search} ⇒ ${replace}</h2>
+  <p class="substitution"><span>This Munge:</span> <em>Smite</em> Fuck Over</p>
   %if verses and len(verses) > 0:
-    <table border=0 cellspacing=5 cellpadding=5 align='CENTER'>
+    <dl>
     %for verse in verses:
       <%
-        taggedreplace = '<span class="munged">{}</span>'.format(replace)
+        taggedreplace = '<strong>{}</strong>'.format(replace)
         munged = re.sub(search, taggedreplace, verse.text)
       %>
-      <tr><td>${verse.book} ${verse.chapter}:${verse.verse}</td><td>${munged}</td></tr>
+      <div class="verse-result">
+        <dd>${munged}</dd><dt>${verse.book} ${verse.chapter}:${verse.verse}</dt>
+      </div>
     %endfor
-    </table>
+    </dl>
   %else:
     <p>Sorry, nothing to show :(</p>
   %endif
