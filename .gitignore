@@ -1,6 +1,13 @@
+# macOS bullshit
+.DS_Store
+._*
+
+# Python bullshit
 __pycache__/
 *.pyc
 *.sqlite
 *.log
+
+# BibleMunger bullshit
 venv/
 biblemunger.config.json
