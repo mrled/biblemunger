@@ -152,22 +152,6 @@ function debugPrint(message) {
     }
 }
 
-/* This function is DEPRECATED, but still might be useful when working on the site design
- */
-function emboldenMunged() {
-    var mungeds = document.getElementsByClassName("munged");
-    unembolden_re = new RegExp(" ?embolden", "g");
-    for (var i=0, il = mungeds.length; i<il; ++i) {
-        melem = mungeds[i];
-        if (document.getElementById("emboldenbox").checked) {
-            melem.className += " embolden";
-        }
-        else {
-            melem.className = mungeds[i].className.replace(unembolden_re,"");
-        }
-    }
-}
-
 /* Run a search/replace operation, and replace the #results div with the results
  * search: a search term
  * replace: a term to replace it with
