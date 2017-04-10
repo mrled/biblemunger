@@ -126,41 +126,6 @@ function pathComponents(urlpath) {
     return urlpath.split('/').filter(function(component) { return component.length > 0; });
 }
 
-/* Parse a URI using the DOM
- * Original: https://j11y.io/javascript/parsing-urls-with-the-dom/
- * This has been modified to suit my prefernces, and pieces that weren't working for me as of 2017 ripped out or replaced
- */
-function URL(urlString) {
-    var a = document.createElement('a');
-    a.href = urlString;
-
-    this.url = a.url;
-    this.protocol = a.protocol.replace(':', '');
-    this.hostname = a.hostname;
-    this.fragment = a.hash.replace('#','');
-    this.path = a.pathname;
-    this.pathComponents = pathComponents(this.path);
-
-    // NOTE: this is the port *in the URL*, so if the URL doesn't specify a port, this is empty
-    this.port = a.port;
-
-    // A string representing the query component of a URL
-    // (like ?search=God&replace=GAWD)
-    this.query = a.search;
-
-    // Object w/ parameters passed in the query component of a URL
-    // (like {search: "God", replace: "GAWD"})
-    this.queryParameters = {};
-    if (this.query.length > 0) {
-        var seg = a.search.replace(/^?/,'').split('&'), pair;
-        for (var idx=0; idx<seg.length; idx++) {
-            if (!seg[idx]) { continue; }
-            pair = seg[idx].split('=');
-            this.queryParameters[pair[0]] = pair[1];
-        }
-    }
-}
-
 /******** Mako template stuff
  * These items are passed in by Mako
  */
