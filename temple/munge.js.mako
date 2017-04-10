@@ -119,6 +119,13 @@ function removeClass(element, className) {
     }
 }
 
+/* Given the pathname part of a URL, return an array where each item represents a component of that path
+ * The path is normalized by eliminating empty components (which can happen if pathname begins/ends w/ slash, or has erroneous double slashes in it)
+ */
+function pathComponents(urlpath) {
+    return urlpath.split('/').filter(function(component) { return component.length > 0; });
+}
+
 /******** Mako template stuff
  * These items are passed in by Mako
  */
@@ -193,7 +200,7 @@ function getSearchReplaceFromUrl(url) {
 
     // Create an array of components separated by a slash, and eliminate any empty components
     // (Empty components might crop up if the pathname begins or ends with a slash, or has erroneous double slashes in the middle)
-    var components = suburl.split('/').filter(Boolean); // Just a list of non-empty strings making up path components
+    var components = pathComponents(appSubpath(url));
 
     var ret = {};
     if (components[0] == 'munge' && components.length === 3) {
