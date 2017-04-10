@@ -1,28 +1,10 @@
 /* Biblemunger JS
  */
 
-/******** Mako template stuff
- * These variables come in from Mako. (We then assign them to JavaScript variables so all the code after this is pure valid JS)
- */
-// Please ensure that this always ends in a '/' character
-var baseurl = "${baseurl}";
-var debug;
-if ("${debug}" === "True") {
-    debug = true;
-    console.log("Debugging");
-} else {
-    debug = false;
-}
-
 /******** Generic utility functions
  * Functions in this section should be generic, divorced from my application
+ * (including mako variables like ${baseurl} and ${debug})
  */
-
-function debugPrint(message) {
-    if (debug) {
-        console.log(message);
-    }
-}
 
 function toggleHideId(Id) {
     elem = document.getElementById(Id);
@@ -83,7 +65,7 @@ function shittyAjax(url, success, failure) {
 }
 
 
-/* String.startsWith polyfill:
+/* Polyfills for String.startsWith and String.endsWith
  */
 if (!String.prototype.startsWith) {
     String.prototype.startsWith = function(searchString, position){
@@ -91,6 +73,22 @@ if (!String.prototype.startsWith) {
         return this.substr(position, searchString.length) === searchString;
     };
 }
+if (!String.prototype.endsWith) {
+    String.prototype.endsWith = function(searchString, position) {
+        var subjectString = this.toString();
+        if (typeof position !== 'number' ||
+            !isFinite(position) ||
+            Math.floor(position) !== position ||
+            position > subjectString.length)
+        {
+            position = subjectString.length;
+        }
+        position -= searchString.length;
+        var lastIndex = subjectString.lastIndexOf(searchString, position);
+        return lastIndex !== -1 && lastIndex === position;
+    };
+}
+
 
 /* Test for, add, and remove CSS classes from HTML elements
  */
@@ -121,9 +119,31 @@ function removeClass(element, className) {
     }
 }
 
-/******** Application-specific functions
- * Functions in this section are tied tightly to my application, and may not be too useful to anyone else
+/******** Mako template stuff
+ * These items are passed in by Mako
  */
+var baseurl = "${baseurl}";
+if (!baseurl.endsWith("/")) {
+    baseurl += "/";
+}
+
+var debug;
+if ("${debug}" === "True") {
+    debug = true;
+    console.log("Debugging");
+} else {
+    debug = false;
+}
+
+/******** Application-specific stuff
+ * Items in this section are tied tightly to my application, and may not be too useful to anyone else
+ */
+
+function debugPrint(message) {
+    if (debug) {
+        console.log(message);
+    }
+}
 
 /* This function is DEPRECATED, but still might be useful when working on the site design
  */
@@ -176,7 +196,7 @@ function getSearchReplaceFromUrl(url) {
     var components = suburl.split('/').filter(Boolean); // Just a list of non-empty strings making up path components
 
     var ret = {};
-    if (components[0] == 'munge' && components.length == 3) {
+    if (components[0] == 'munge' && components.length === 3) {
         ret = {'search': components[1], 'replace': components[2]};
     }
     return ret;
