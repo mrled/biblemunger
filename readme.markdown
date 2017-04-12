@@ -13,7 +13,7 @@ Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toas
 - cherrypy: `pip install CherryPy`
     - Note: CherryPy for Python 3 in Ubuntu 14.04 LTS is version `3.2.2-4ubuntu5`, which is buggy, and the server will shut down a few seconds after it's started with an error like `cherrypy.process.wspbus.ChannelFailures: OSError("Port 8187 not bound on '127.0.0.1'",)`, even if the port free.
 - mako: `pip install Mako`
-    - It appears Mako 1.0.6 doesn't work with Python 3.6.0 or 3.6.1; when I try to install it using `pip`, I get an error like `AttributeError: module 'importlib._bootstrap' has no attribute 'SourceFileLoader'`. Various versions of Python 3.4 and 3.5 have worked for me in the past, and I'm using 3.5.3 as I type this.
+    - It appears Mako 1.0.6 doesn't work with Python 3.6.0 or 3.6.1 on macOS (though I haven't seen this problem on Windows). When I try to install it using `pip`, I get an error like `AttributeError: module 'importlib._bootstrap' has no attribute 'SourceFileLoader'`. Various versions of Python 3.4 and 3.5 have worked for me in the past, and I'm using 3.5.3 on macOS as I type this.
 
 You can install these dependencies separately, but it's often easiest to use `virtualenv`. Here's an example of how to do that with Python 3.4+ (which is required for the `ensurepip` module):
 
@@ -37,7 +37,7 @@ If it's been installed via `pip`, this will start CherryPy's webserver:
 If you want to run from Apache, consider using WSGI:
 
     <Directory /path/to/webapps>
-        Options +ExecCGI 
+        Options +ExecCGI
         Require all granted
     </Directory>
     WSGIScriptAlias /biblemunger /path/to/webapps/biblemunger/munger.py
