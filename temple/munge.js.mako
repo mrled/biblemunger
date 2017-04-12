@@ -3,8 +3,27 @@
 
 /******** Generic utility functions
  * Functions in this section should be generic, divorced from my application
- * (including mako variables like ${baseurl} and ${debug})
+ * (including mako variables)
  */
+
+/* The base URL for the application (so we can find endpoints, static assets, etc)
+ * We assume this exists; you must inject this variable separately
+ * We make sure it always ends with a slash so our code is less fragile
+ */
+if (window.baseurl[ window.baseurl.length -1 ] !== '/') {
+    window.baseurl += '/';
+}
+
+/* Print a debug message
+ * Checks a global 'debug' variable first; you must inject this variable separately
+ */
+function debugPrint(message) {
+    if (window.debug) {
+        console.log(message);
+    }
+}
+debugPrint("If this prints to the console, debugging is enabled");
+debugPrint("Detected baseurl as '" + baseurl + "'");
 
 function toggleHideId(Id) {
     elem = document.getElementById(Id);
@@ -64,7 +83,6 @@ function shittyAjax(url, success, failure) {
     request.send();
 }
 
-
 /* Polyfills for String.startsWith and String.endsWith
  */
 if (!String.prototype.startsWith) {
@@ -88,7 +106,6 @@ if (!String.prototype.endsWith) {
         return lastIndex !== -1 && lastIndex === position;
     };
 }
-
 
 /* Test for, add, and remove CSS classes from HTML elements
  */
@@ -126,31 +143,48 @@ function pathComponents(urlpath) {
     return urlpath.split('/').filter(function(component) { return component.length > 0; });
 }
 
-/******** Mako template stuff
- * These items are passed in by Mako
+/* Assemble a path from path components
+ * components: an array of (string) path components
+ * startSlash: if true, ensure the path begins with a slash; if false, ensure it does not
+ * endSlash: if true, ensure the path ends with a slash; if false, ensure it does not
+ * returns: the components, each separated by a single '/'
+ *          will search and replace all multi-slashes in a component with a single slash
+ *          except that if it notices a protocol like http://, it saves it before replacing
+ *          this also means if you want to represent file:/// urls w/ 3 slashes, you can do so
+ *          by passing startSlash as true.
  */
-var baseurl = "${baseurl}";
-if (!baseurl.endsWith("/")) {
-    baseurl += "/";
-}
+function assemblePath(components, startSlash, endSlash) {
+    var assembled = components.join('/');
+    var match = assembled.match(/^\w+\:\/\//);
+    if (match) {
+        var protocol = match[0];
+        assembled = assembled.substring(match[0].length);
+    }
+    assembled = assembled.replace(/\/+/g, '/');
 
-var debug;
-if ("${debug}" === "True") {
-    debug = true;
-    console.log("Debugging");
-} else {
-    debug = false;
+    if (startSlash && assembled[0] !== '/') {
+        assembled = '/' + assembled;
+    } else if (!startSlash && assembled[0] === '/') {
+        assembled = assembled.substring(1);
+    }
+
+    var finalIdx = assembled.length - 1;
+    if (endSlash && assembled[finalIdx] !== '/') {
+        assembled = assembled + '/';
+    } else if (!endSlash && assembled[finalIdx] === '/') {
+        assembled = assembled.substring(0, finalIdx);
+    }
+
+    if (protocol) {
+        assembled = protocol + assembled;
+    }
+
+    return assembled;
 }
 
 /******** Application-specific stuff
  * Items in this section are tied tightly to my application, and may not be too useful to anyone else
  */
-
-function debugPrint(message) {
-    if (debug) {
-        console.log(message);
-    }
-}
 
 /* Run a search/replace operation, and replace the #results div with the results
  * search: a search term
@@ -158,7 +192,7 @@ function debugPrint(message) {
  * updateHistory: if truthy, call history.pushState() with a URL that will represent the new search
  */
 function searchReplace(search, replace, updateHistory) {
-    shittyAjax(baseurl+'search/'+search+'/'+replace+'/', function(html) {
+    shittyAjax(assemblePath([baseurl, 'search', search, replace], false, true), function(html) {
 
         var resultsAreaList = document.getElementsByClassName("results-area");
         for (var idx=0; idx<resultsAreaList.length; idx++) {
@@ -166,7 +200,7 @@ function searchReplace(search, replace, updateHistory) {
         }
 
         if (updateHistory) {
-            var newUrl = baseurl+'munge/'+search+'/'+replace+'/';
+            var newUrl = assemblePath([baseurl, 'munge', search, replace], false, true);
             debugPrint("Pushing new URL to history: "+newUrl);
             history.pushState(null, null, newUrl);
         }
@@ -174,18 +208,18 @@ function searchReplace(search, replace, updateHistory) {
     });
 }
 
+/* Extract search/replace parameters from a munge URL
+ * url: A url to examine, defaults to window.location.href
+ * returns: An object with .search and .replace properties, or nothing
+ */
 function getSearchReplaceFromUrl(url) {
     if (typeof url === 'undefined') {
         url = window.location.href;
     } else {
         url = String(url);
     }
-    var suburl = url.substring(baseurl.length);
-
-    // Create an array of components separated by a slash, and eliminate any empty components
-    // (Empty components might crop up if the pathname begins or ends with a slash, or has erroneous double slashes in the middle)
-    var components = pathComponents(appSubpath(url));
-
+    var urlpath = url.substring(baseurl.length);
+    var components = pathComponents(urlpath);
     var ret = {};
     if (components[0] == 'munge' && components.length === 3) {
         ret = {'search': components[1], 'replace': components[2]};
@@ -204,7 +238,7 @@ function getSavedSearches() {
             retargetMungeLinks();
         })
     }
-    gss(baseurl+'favorites', 'searchFavoriteResults');
+    gss(assemblePath([baseurl, 'favorites'], false, true), 'searchFavoriteResults');
 }
 
 /* The search form will get retargeted to this function if JS is enabled
