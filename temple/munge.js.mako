@@ -129,6 +129,9 @@ function pathComponents(urlpath) {
 /******** Mako template stuff
  * These items are passed in by Mako
  */
+
+alert("FUCK EVERYTHING I NEED TO MAKE SURE BASEURL DOES NOT HAVE A TRAILING SLASH NOW PLS")
+alert("Wait can I set some HTML property to baseurl, and never have to actually refer to it here (referring instead to the HTML property)?")
 var baseurl = "${baseurl}";
 if (!baseurl.endsWith("/")) {
     baseurl += "/";
@@ -146,6 +149,168 @@ if ("${debug}" === "True") {
  * Items in this section are tied tightly to my application, and may not be too useful to anyone else
  */
 
+/* Get the path of a URL relative to baseurl
+ */
+function appSubpath(url) {
+    return url.substring(baseurl.length);
+}
+
+var appEndpoints = {};
+
+/* Constructor for AppEndpoint objects, which let me reason about URLs for calling into backend functions.
+ * backendFunctionName: the name of the function being called in the backend code
+ * endpoint: the endpoint, where / is the base application URL, like "/endpoint" or "/some/k-rad/endpoint"
+ * composeFunction: a function which takes 2 arguments and returns a URL:
+ *  - baseEndpoint: a string representing the endpoint argument passed to this constructor
+ *  - backendParameters: a dictionary representing the arguments to the backend function (in argument name:value pairs)
+ *  - returns: a URL to call the backend function using those arguments.
+ * extractArgsFunction: a function which takes 1 argument and returns a dictionary:
+ *  - urlComponents: an array of application URL components (not including baseurl components)
+ *  - returns: a dictionary representing arguments to the backend function where key is arg name and value is its value
+ */
+function registerAppEndpoint(backendFunctionName, endpoint, composeFunction, extractArgsFunction) {
+
+    var appEndpoint = {
+        // The name of the backend function
+        backendFunctionName: backendFunctionName,
+
+        // An array of path components for the URL to the backend function call, relative to the baseurl
+        endpointComponents: pathComponents(endpoint),
+
+        // Test whether a URL points to this backend function
+        // url: a URL to test
+        // returns: true or false
+        test: function(url) {
+            var subUrlComponents = pathComponents(appSubpath(url));
+            for (var idx=0; idx<endpointComponents.length; idx++) {
+                if (endpointComponents[idx] != subUrlComponents[idx]) {
+                    return false;
+                }
+            }
+            return true;
+        },
+
+        // Compose a backend function call
+        // backendParameters: a dictionary representing arguments to the backend function
+        // returns: a URL to call the backend function that way
+        compose: function(backendParameters) {
+            return composeFunction()
+        },
+
+        // Extract arguments to a backend function from a URL
+        // url: a URL representing a call to this backend function
+        // returns: a dictionary containing arguments to the backend function where key is arg name and value is arg value
+        extractArgs: function(url) {
+            if (!this.test(url)) {
+                return;
+            }
+            return extractArgsFunction(pathComponents(appSubpath(url)));
+        }
+    }
+
+    // Is this... a good idea? It seems kind of perverse, but also concise, and I can't think of any legit use that would be harmed by this
+    if (appEndpoints[backendFunctionName] !== undefined) {
+        debugPrint("Attempting to register an AppEndpoint more than once. Aborting...");
+        return false;
+    }
+    appEndpoints[backendFunctionName] = appEndpoint;
+    return true;
+}
+registerAppEndpoint(
+    "Munger.munge()",
+    "/munge"
+    function(baseEndpoint, backendParameters) {
+        return [baseEndpoint, backendParameters.search, backendParameters.replace].join("/");
+    },
+    function(urlComponents) {
+        return {search: urlComponents[0], replace: urlComponents[1]};
+    }
+);
+registerAppEndpoint(
+    "Munger.search()",
+    "/search"
+    function(baseEndpoint, ) {
+        return [baseurl, "search", options.search, options.replace].join("/");
+    },
+    function(urlComponents) {
+        return {search: urlComponents[0], replace: urlComponents[1]};
+    }
+)
+
+
+/* Constructor for AppEndpoint objects, which let me reason about URLs for calling into backend functions.
+ * backendFunctionName: the name of the function being called in the backend code
+ * endpoint: the endpoint, where / is the base application URL, like "/endpoint" or "/some/k-rad/endpoint"
+ * composeFunction: a function which takes 2 arguments and returns a URL:
+ *  - baseEndpoint: a string representing the endpoint argument passed to this constructor
+ *  - backendParameters: a dictionary representing the arguments to the backend function (in argument name:value pairs)
+ *  - returns: a URL to call the backend function using those arguments.
+ * extractArgsFunction: a function which takes 1 argument and returns a dictionary:
+ *  - urlComponents: an array of application URL components (not including baseurl components)
+ *  - returns: a dictionary representing arguments to the backend function where key is arg name and value is its value
+ */
+function AppEndpoint(backendFunctionName, endpoint, composeFunction, extractArgsFunction) {
+
+    // The name of the backend function
+    this.backendFunctionName = backendFunctionName;
+
+    // An array of path components for the URL to the backend function call, relative to the baseurl
+    this.endpointComponents = pathComponents(endpoint);
+
+    // Test whether a URL points to this backend function
+    // url: a URL to test
+    // returns: true or false
+    this.test = function(url) {
+        var subUrlComponents = pathComponents(appSubpath(url));
+        for (var idx=0; idx<endpointComponents.length; idx++) {
+            if (endpointComponents[idx] != subUrlComponents[idx]) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    // Compose a backend function call
+    // backendParameters: a dictionary representing arguments to the backend function
+    // returns: a URL to call the backend function that way
+    this.compose = function(backendParameters) {
+        return composeFunction()
+    };
+
+    // Extract arguments to a backend function from a URL
+    // url: a URL representing a call to this backend function
+    // returns: a dictionary containing arguments to the backend function where key is arg name and value is arg value
+    this.extractArgs = function(url) {
+        if (!this.test(url)) {
+            return;
+        }
+        return extractArgsFunction(pathComponents(appSubpath(url)));
+    };
+}
+
+var appEndpoints = {
+    munge: new AppEndpoint(
+        "Munger.munge()",
+        "/munge"
+        function(baseEndpoint, backendParameters) {
+            return [baseEndpoint, backendParameters.search, backendParameters.replace].join("/");
+        },
+        function(urlComponents) {
+            return {search: urlComponents[0], replace: urlComponents[1]};
+        }
+    ),
+    search: new AppEndpoint(
+        "Munger.search()",
+        "/search"
+        function(baseEndpoint, ) {
+            return [baseurl, "search", options.search, options.replace].join("/");
+        },
+        function(urlComponents) {
+            return {search: urlComponents[0], replace: urlComponents[1]};
+        }
+    )
+};
+
 function debugPrint(message) {
     if (debug) {
         console.log(message);
@@ -158,6 +323,11 @@ function debugPrint(message) {
  * updateHistory: if truthy, call history.pushState() with a URL that will represent the new search
  */
 function searchReplace(search, replace, updateHistory) {
+    shittyAjax([appEndpoints['Munger.search'], search, replace].join('/'), function(html) {
+    shittyAjax(
+        appEndpoints['Munger.search'].compose({search: search, replace: replace}),
+        function(html) {
+    shittyAjax([baseurl, 'search', search, replace].join('/'), function(html) {
     shittyAjax(baseurl+'search/'+search+'/'+replace+'/', function(html) {
 
         var resultsAreaList = document.getElementsByClassName("results-area");
@@ -166,6 +336,7 @@ function searchReplace(search, replace, updateHistory) {
         }
 
         if (updateHistory) {
+            var newUrl = [appEndpoints['Munger.munge'], search, replace].join('/');
             var newUrl = baseurl+'munge/'+search+'/'+replace+'/';
             debugPrint("Pushing new URL to history: "+newUrl);
             history.pushState(null, null, newUrl);
@@ -180,17 +351,14 @@ function getSearchReplaceFromUrl(url) {
     } else {
         url = String(url);
     }
-    var suburl = url.substring(baseurl.length);
+    return appEndpoints['Munger.replace'].extractArgs(url);
 
-    // Create an array of components separated by a slash, and eliminate any empty components
-    // (Empty components might crop up if the pathname begins or ends with a slash, or has erroneous double slashes in the middle)
     var components = pathComponents(appSubpath(url));
-
-    var ret = {};
     if (components[0] == 'munge' && components.length === 3) {
-        ret = {'search': components[1], 'replace': components[2]};
+        return = {'search': components[1], 'replace': components[2]};
+    } else {
+        return {};
     }
-    return ret;
 }
 
 /* Get a SavedSearches result
@@ -204,6 +372,7 @@ function getSavedSearches() {
             retargetMungeLinks();
         })
     }
+    gss(appEndpoints['Munger.favorites'], 'searchFavoriteResults')
     gss(baseurl+'favorites', 'searchFavoriteResults');
 }
 
