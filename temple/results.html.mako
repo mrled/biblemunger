@@ -4,7 +4,7 @@ import re
 %>
 
 %if search and replace:
-  <p class="substitution"><span>This Munge:</span> <em>Smite</em> Fuck Over</p>
+  <p class="substitution"><span>This Munge:</span> <em>${search}</em> ${replace}</p>
   %if verses and len(verses) > 0:
     <dl>
     %for verse in verses:
