@@ -27,9 +27,7 @@
       <%!
         import datetime
       %>
-      <div class="debuggingOnly">
-        <p>Page generated ${datetime.datetime.now()}</p>
-      </div>
+      <p id="debug-message">DEBUG: Page generated ${datetime.datetime.now()}</p>
     %endif
 
     <div id="bodyContent">

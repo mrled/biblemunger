@@ -55,6 +55,16 @@ header img {
 	cursor: pointer;
 }
 
+/**** DEBUGGING ****/
+#debug-message {
+	color: black;
+	background-color: red;
+	position: fixed;
+	bottom: 1em;
+	left: 1em;
+	font-size: .7em;
+}
+
 /**** MUNGING FORM ****/
 .content-area.munging-page {
 	border-left: 0 none;
