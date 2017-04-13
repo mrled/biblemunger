@@ -273,3 +273,16 @@ function retargetMungeLinks() {
 function retargetSearchForm() {
     document.getElementById('mungerForm').setAttribute('action', 'javascript:submitSearchForm()');
 }
+
+function setSearchReplaceBoxValues(pair) {
+    var searchBox  = document.getElementById('searchBox'),
+        replaceBox = document.getElementById('replaceBox');
+    if (pair.search) {
+        searchBox.placeholder = "";
+        searchBox.value = pair.search;
+    }
+    if (pair.replace) {
+        replaceBox.placeholder = "";
+        replaceBox.value = pair.replace;
+    }
+}

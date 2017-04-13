@@ -7,6 +7,7 @@
 <%block name="headscript">
   <script>
     window.onload = function() {
+        setSearchReplaceBoxValues(getSearchReplaceFromUrl(window.location));
         // getSavedSearches();
         retargetSearchForm();
         retargetMungeLinks();
