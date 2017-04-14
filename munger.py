@@ -197,12 +197,23 @@ def configure():
                 c = json.load(f)
             configuration.update(c)
             log.debug("Found config file at {}".format(config))
-        except:
+        except:  # noqa
             pass
     if not configuration:
         raise Exception("No configuration file was found")
 
+    def ensureabs(path):
+        return path if os.path.isabs(path) else os.path.join(scriptdir, path)
+
+    configuration['dbpath']  = ensureabs(configuration['dbpath'])
+    configuration['logfile'] = ensureabs(configuration['logfile'])
+    configuration['bible']   = ensureabs(configuration['bible'])
+
+    if not os.path.exists(configuration['bible']):
+        raise Exception("Cannot locate bible file at '{}'".format(configuration['bible']))
+
     configuration['dbpath'] = os.path.abspath(configuration['dbpath'])
+    configuration['dburi'] = "file:///{}?cache=shared".format(configuration['dbpath'])
 
     if configuration['debug']:
         configuration['loglevel'] = logging.DEBUG
@@ -215,8 +226,6 @@ def configure():
         configuration['loghandlers'] += [logging.FileHandler(configuration['logfile'])]
     for handler in configuration['loghandlers']:
         handler.setFormatter(configuration['logformatter'])
-
-    configuration['dburi'] = "file:///{}?cache=shared".format(configuration['dbpath'])
 
     return configuration
 
