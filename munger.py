@@ -76,7 +76,7 @@ class MungerVersion():
             try:
                 with open(self.versionfile) as df:
                     self._version = df.read()
-            except:
+            except Exception:
                 self._version = "development version"
         return self.version
 
