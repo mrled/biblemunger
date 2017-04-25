@@ -16,6 +16,7 @@ import util   # noqa
 
 versionfile = os.path.join(scriptdir, 'deploymentinfo.txt')
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
+cherrypy.tools.baseurloverride = util.BaseUrlOverride()
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
@@ -202,6 +203,19 @@ def configure():
     if not configuration:
         raise Exception("No configuration file was found")
 
+    # Configure environment variable override
+
+    if "BIBLEMUNGER_DEBUG" in os.environ.keys():
+        if os.environ['BIBLEMUNGER_DEBUG'] in ['1', 'true', 'True', 'TRUE']:
+            configuration['debug'] = True
+
+    if "baseurloverride" not in configuration.keys():
+        configuration['baseurloverride'] = None
+    if "BIBLEMUNGER_BASEURL_OVERRIDE" in os.environ.keys():
+        configuration['baseurloverride'] = os.environ["BIBLEMUNGER_BASEURL_OVERRIDE"]
+
+    # Normalize configuration so it can be used easily in the application
+
     def ensureabs(path):
         return path if os.path.isabs(path) else os.path.join(scriptdir, path)
 
@@ -272,7 +286,9 @@ def application(environ=None,
         '/': {
             'tools.mako.directories': os.path.join(scriptdir, 'temple'),
             'tools.mako.debug': configuration['debug'],
-            'tools.staticdir.root': scriptdir},
+            'tools.staticdir.root': scriptdir,
+            'tools.baseurloverride.baseurl': configuration['baseurloverride'],
+            'tools.baseurloverride.on': True},
         '/static': {
             'tools.staticdir.on': True,
             'tools.staticdir.dir': 'static'},
