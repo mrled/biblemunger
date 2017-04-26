@@ -122,26 +122,34 @@ class DictEncoder(json.JSONEncoder):
 
 
 class LockableSqliteConnection():
-    """A class, usable as an argument to a 'with' statement, that has a sqlite3.Connection object, a sqlite3.Cursor object, and a threading.Lock object
+    """A `with`-able class that wraps a SQLite connection, a cursor, and a lock
 
-    When the 'with' statement is begun, the internal cursor object is allocated, and the internal lock is acquired. When the 'with' statements terminates, the internal cursor object is closed, the internal connection object is committed, and the internal lock object is released. Exiting the 'with' statement does *not* close the connection; the caller is responsible for this, but we do provide a convenience method to do it.
+    When the `with` statement is begun, the internal cursor object is allocated, and the internal lock is acquired. When the `with` statements terminates, the internal cursor object is closed, the internal connection object is committed, and the internal lock object is released. Exiting the `with` statement does *not* close the connection; the caller is responsible for this, but we do provide a convenience method to do it.
 
     Usable like so:
 
-        lockableconn = LockablesqliteConnection("file:///some/database.sqlite?cache=shared")
-        with lockableconn as connection:
-            connection.cursor.execute("SOME SQL HERE")
+        lockableconn = LockableSqliteConnection("file:///some/database.sqlite?cache=shared")
+
+        with lockableconn.ro as connection:
+            connection.cursor.execute("SELECT * FROM SOMEWHERE")
             results = connection.cursor.fetchall()
 
-    Inside of the 'with' statement, take care not to call other code that will use a 'with' statement on the same LockableSqliteConnection object. This sounds obvious, but it's easy to do when the 'with' statement might be in another function which is itself called inside a 'with' statement. For instance, this code will fail:
+        with lockableconn.rw as connection:
+            connection.cursor.execute("INSERT SOMETHING INTO SOMEWHERE")
+
+        lockableconn.close()
+
+    **WARNING**: This class has the read/write property `LockableSqliteConnection.rw` and the read-only property `LockableSqliteConnection.ro`, but **the read-only property is not a security boundary**. It exists so that the class knows whether it needs to lock the database, NOT to enforce that database changes don't happen in SQL that you pass to its cursor. Using the `.rw` property will also handle commiting changes made in read/write mode, so if you're doing complicated database transactions which you might have to roll back halfway through, you will have to handle that yourself (or perhaps `LockableSqliteConnection` isn't a good tool for your use case).
+
+    **WARNING**: Inside of the `with` statement, take care not to call other code that will use a `with` statement on the same LockableSqliteConnection object in read/write mode. This sounds obvious, but it's easy to do when the `with` statement might be in another function which is itself called inside a `with` statement. For instance, this code will deadlock, because `func2()` locks the connection until `func1()` completes, but `func1()` will not finish until the lock is released:
 
         lockableconn = LockablesqliteConnection("file:///some/database.sqlite?cache=shared")
         def func1():
-            with lockableconn as connection:
+            with lockableconn.rw as connection:
                 connection.cursor.execute("SOME SQL HERE")
                 results = connection.cursor.fetchall()
         def func2():
-            with lockableconn as connection:
+            with lockableconn.rw as connection:
                 func1()
 
     This class is intended to take the place of more cumbersome syntax like:
@@ -175,7 +183,6 @@ class LockableSqliteConnection():
             if self.rw:
                 self.connection.commit()
             # I've seen self.cursor be None before, but I'm not sure why
-            # Attempting to call a method on None will throw an exception, though, so we'll check for it first
             if self.cursor is not None:
                 self.cursor.close()
                 self.cursor = None
@@ -193,30 +200,14 @@ class LockableSqliteConnection():
                 self.lock.release()
 
     def __init__(self, dburi):
-        """Create a LockableSqliteConnection object.
-
-        Assumes the dburi does *not* have the 'mode' querty parameter specified
-        """
-
-        # def paramadd(uri, params):
-        #     """Add parameters to a URI query string"""
-        #     parseduri = list(urllib.parse.urlparse(uri))
-        #     query = dict(urllib.parse.parse_qsl(parseduri[4]))
-        #     query.update(params)
-        #     parseduri[4] = urllib.parse.urlencode(query)
-        #     return urllib.parse.urlunparse(parseduri)
 
         def tryconnect(dburi):
             try:
                 return sqlite3.connect(dburi, uri=True, check_same_thread=False)
-            except:
-                print("Failed to connect to database with URI '{}'".format(dburi))
+            except Exception, exc:
+                print(
+                    "Failed to connect to database of URI '{}' with error '{}'".format(dburi, exc))
                 raise
-
-        # TODO: Ideally roconn would enforce readonly connections to the databse, but for now it does not do this!
-        # The following code will return 'sqlite3.OperationalError: unable to open database file', but I'm not sure why...
-        # rodburi = paramadd(dburi, {'mode': 'ro'})
-        # roconn = tryconnect(rodburi)
 
         roconn = tryconnect(dburi)
         rwconn = tryconnect(dburi)
