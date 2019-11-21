@@ -1,6 +1,6 @@
 # biblemunger - provacative text-replacement in famous literature
 
-Inspired by [Mallory Ortberg's definitive text-replacement work](http://the-toast.net/series/bible-verses/)
+Inspired by [Daniel Ortberg's definitive text-replacement work](http://the-toast.net/series/bible-verses/)
 
 ## Requirements
 
