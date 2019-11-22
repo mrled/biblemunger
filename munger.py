@@ -205,7 +205,7 @@ def configure():
     if os.path.isabs(configuration['dbpath']):
         configuration['dbpath'] = os.path.abspath(configuration['dbpath'])
     else:
-        configuration['dbpath'] = os.path.join(scriptdir, configuration['dbpath'])):
+        configuration['dbpath'] = os.path.join(scriptdir, configuration['dbpath'])
 
     if configuration['debug']:
         configuration['loglevel'] = logging.DEBUG
