@@ -1,5 +1,7 @@
 import xml.etree.ElementTree as ET
 
+import sqlite3
+
 import util
 
 
@@ -80,10 +82,15 @@ class Bible(object):
     @property
     def hasverses(self):
         """Return True if at least one verse is present; return False otherwise"""
+
         with self.connection.ro as dbconn:
-            dbconn.cursor.execute("SELECT verse FROM {} LIMIT 1".format(self.tablename))
-            result = dbconn.cursor.fetchone()
-        return result is not None
+            try:
+                dbconn.cursor.execute(
+                    "SELECT verse FROM {} LIMIT 1".format(self.tablename))
+                result = dbconn.cursor.fetchone()
+                return result is not None
+            except sqlite3.OperationalError:
+                return False
 
     def addverses(self, verses):
         with self.connection.rw as dbconn:
