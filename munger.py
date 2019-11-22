@@ -114,7 +114,7 @@ class Munger():
         start = split[0]
         end = split[1] if len(split) == 2 else None
         if end:
-            vrangelabel = "{} – {}".format(start, end)
+            vrangelabel = "{} - {}".format(start, end)
         else:
             vrangelabel = start
 
