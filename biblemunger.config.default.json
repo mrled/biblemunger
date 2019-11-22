@@ -22,6 +22,6 @@
         "favorites": "favorite_searches",
         "bible": "bible"
     },
-    "logfile": "",
+    "logfile": "bmweb.log",
     "debug": false
 }

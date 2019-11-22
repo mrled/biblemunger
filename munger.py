@@ -184,6 +184,15 @@ class Munger():
         raise cherrypy.HTTPRedirect(redirurl)
 
 
+def rel_resolve(path):
+    """Resolve a path that might be relative to this script
+    """
+    if os.path.isabs(path):
+        return os.path.abspath(path)
+    else:
+        return os.path.join(scriptdir, path)
+
+
 def configure():
     """Read configuration from the filesystem, and process it for use in my application"""
 
@@ -202,10 +211,9 @@ def configure():
     if not configuration:
         raise Exception("No configuration file was found")
 
-    if os.path.isabs(configuration['dbpath']):
-        configuration['dbpath'] = os.path.abspath(configuration['dbpath'])
-    else:
-        configuration['dbpath'] = os.path.join(scriptdir, configuration['dbpath'])
+    configuration['dbpath'] = rel_resolve(configuration['dbpath'])
+    configuration['bible'] = rel_resolve(configuration['bible'])
+    configuration['logfile'] = rel_resolve(configuration['logfile'])
 
     if configuration['debug']:
         configuration['loglevel'] = logging.DEBUG
