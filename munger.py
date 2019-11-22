@@ -202,7 +202,10 @@ def configure():
     if not configuration:
         raise Exception("No configuration file was found")
 
-    configuration['dbpath'] = os.path.abspath(configuration['dbpath'])
+    if os.path.isabs(configuration['dbpath']):
+        configuration['dbpath'] = os.path.abspath(configuration['dbpath'])
+    else:
+        configuration['dbpath'] = os.path.join(scriptdir, configuration['dbpath'])):
 
     if configuration['debug']:
         configuration['loglevel'] = logging.DEBUG
@@ -216,7 +219,7 @@ def configure():
     for handler in configuration['loghandlers']:
         handler.setFormatter(configuration['logformatter'])
 
-    configuration['dburi'] = "file:///{}?cache=shared".format(configuration['dbpath'])
+    configuration['dburi'] = "file://{}?cache=shared".format(configuration['dbpath'])
 
     return configuration
 
