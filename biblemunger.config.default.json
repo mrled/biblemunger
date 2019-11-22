@@ -15,12 +15,13 @@
         {"search": "Behold", "replace": "Oh shit"},
         {"search": "Behold", "replace": "Look, buddy"},
         {"search": "father", "replace": "daddi"},
-        {"search": "shoes", "replace": "fly kicks"}
+        {"search": "shoes", "replace": "fly kicks"},
+	{"search": "Aaron", "replace": "Shrek"}
     ],
     "tablenames": {
         "favorites": "favorite_searches",
         "bible": "bible"
     },
-    "logfile": "biblemunger.log",
+    "logfile": "",
     "debug": false
 }
