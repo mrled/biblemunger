@@ -7,21 +7,22 @@ import sys
 
 import cherrypy
 
-scriptdir = os.path.dirname(os.path.realpath(__file__))
-sys.path = [scriptdir] + sys.path
+SCRIPTDIR = os.path.dirname(os.path.realpath(__file__))
+sys.path = [SCRIPTDIR] + sys.path
 
 # Must come after updating sys.path because of WSGI
 import bible  # noqa
 import util   # noqa
 
-versionfile = os.path.join(scriptdir, 'deploymentinfo.txt')
+VERSIONFILE = os.path.join(SCRIPTDIR, 'deploymentinfo.txt')
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
 LOGGER = logging.getLogger('biblemunger')
 LOGGER.addHandler(logging.NullHandler())
 
 
 class SavedSearches():
-    """A database-backed list of saved searches"""
+    """A database-backed list of saved searches
+    """
 
     def __init__(self, lockableconn, tablename):
         self.connection = lockableconn
@@ -34,24 +35,32 @@ class SavedSearches():
             if initialize is util.InitializationOption.Reinitialize:
                 dbconn.cursor.execute("DROP TABLE IF EXISTS {}".format(self.tablename))
                 dbconn.connection.commit()
-            dbconn.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(self.tablename))
+            dbconn.cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'".format(
+                    self.tablename))
             if not dbconn.cursor.fetchone():
                 dbconn.cursor.execute("CREATE TABLE {} (search, replace)".format(self.tablename))
 
     def add(self, search, replace):
-        """Add a search/replace pair"""
+        """Add a search/replace pair
+        """
         esearch = html.escape(search)
         ereplace = html.escape(replace)
 
         with self.connection.ro as dbconn:
             dbconn.cursor.execute(
-                "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(self.tablename),
+                "SELECT search, replace FROM {} WHERE search=? AND replace=?".format(
+                    self.tablename),
                 (esearch, ereplace))
             present = dbconn.cursor.fetchall()
         if present:
-            LOGGER.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablename))
+            LOGGER.debug(
+                "Pair '{}'/'{}' already exists in '{}', nothing to do".format(
+                    esearch, ereplace, self.tablename))
         else:
-            LOGGER.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablename))
+            LOGGER.debug(
+                "Pair '{}'/'{}' does not exist in '{}', adding...".format(
+                    esearch, ereplace, self.tablename))
             with self.connection.rw as dbconn:
                 dbconn.cursor.execute(
                     "INSERT INTO {} VALUES (?, ?)".format(self.tablename),
@@ -65,15 +74,16 @@ class SavedSearches():
 
 
 class MungerVersion():
-    """A way to get the deployment version"""
+    """A way to get the deployment version
+    """
 
-    def __init__(self, versionfile):
-        self.versionfile = versionfile
+    def __init__(self, VERSIONFILE):
+        self.VERSIONFILE = VERSIONFILE
 
     def get(self):
         if not self._version:
             try:
-                with open(self.versionfile) as df:
+                with open(self.VERSIONFILE) as df:
                     self._version = df.read()
             except:
                 self._version = "development version"
@@ -81,7 +91,8 @@ class MungerVersion():
 
 
 class Munger():
-    """Provocative text replacement in famous literature"""
+    """Provocative text replacement in famous literature
+    """
 
     def __init__(self, bible, favorites, mungerversion):
         self.bible = bible
@@ -104,7 +115,8 @@ class Munger():
         vidrange:   A range of verses, specified by verse id ("vid") and separated by a colon
                     For example: "startvid:endvid"
                     The vids are specified like "Genesis-1-1"
-                    The startvid is required. The endvid is optional; if it's not present, just show a single verse
+                    The startvid is required. The endvid is optional; if it's not present, just show
+                    a single verse
         """
         split = vidrange.split(":")
         if len(split) < 1 or len(split) < 1 or len(split[0]) == 0:
@@ -177,7 +189,8 @@ class Munger():
     @cherrypy.expose
     @cherrypy.popargs('search', 'replace')
     def searchForm(self, search=None, replace=None):
-        """Redirect form data from /searchForm?search=SEARCH&replace=REPLACE to /SEARCH/REPLACE"""
+        """Redirect form data from /searchForm?search=SEARCH&replace=REPLACE to /SEARCH/REPLACE
+        """
         if not search or not replace:
             raise cherrypy.HTTPError(400, "Bad request")
         redirurl = "/{}/{}/".format(search, replace)
@@ -190,15 +203,16 @@ def rel_resolve(path):
     if os.path.isabs(path):
         return os.path.abspath(path)
     else:
-        return os.path.join(scriptdir, path)
+        return os.path.join(SCRIPTDIR, path)
 
 
 def configure():
-    """Read configuration from the filesystem, and process it for use in my application"""
+    """Read configuration from the filesystem, and process it for use in my application
+    """
 
     configs = [
-        os.path.join(scriptdir, 'biblemunger.config.default.json'),
-        os.path.join(scriptdir, 'biblemunger.config.json')]
+        os.path.join(SCRIPTDIR, 'biblemunger.config.default.json'),
+        os.path.join(SCRIPTDIR, 'biblemunger.config.json')]
     configuration = {}
     for config in configs:
         try:
@@ -219,7 +233,8 @@ def configure():
         configuration['loglevel'] = logging.DEBUG
     else:
         configuration['loglevel'] = logging.INFO
-    configuration['logformatter'] = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    configuration['logformatter'] = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     configuration['loghandlers'] = [logging.StreamHandler(stream=sys.stdout)]
     if configuration['logfile']:
         configuration['logfile'] = os.path.abspath(configuration['logfile'])
@@ -232,10 +247,11 @@ def configure():
     return configuration
 
 
-def application(environ=None,
-                start_response=None,
-                configuration=configure(),
-                initialize=util.InitializationOption.NoAction):
+def application(
+        environ=None,
+        start_response=None,
+        configuration=configure(),
+        initialize=util.InitializationOption.NoAction):
     """Webserver setup code
 
     environ: passed from WSGI (if not present, use cherrypy's built-in webserver)
@@ -243,7 +259,8 @@ def application(environ=None,
     configuration: a configuration object, normally from the configure() function
     initialize: controls db initialization. See util.InitializationOption
 
-    If 'environ' and 'start_response' parameters are passed, assume WSGI; otherwise, start cherrypy's built-in webserver.
+    If 'environ' and 'start_response' parameters are passed, assume WSGI; otherwise, start
+    cherrypy's built-in webserver.
     """
 
     cp_logger = logging.getLogger('cherrypy')
@@ -267,22 +284,25 @@ def application(environ=None,
     for fave in configuration['favorites']:
         favorites.add(fave['search'], fave['replace'])
 
-    global versionfile
-    vers = MungerVersion(versionfile)
+    vers = MungerVersion(VERSIONFILE)
 
     server = Munger(bib, favorites, vers)
 
     cherrypy.tree.mount(server, '/', {
         '/': {
-            'tools.mako.directories': os.path.join(scriptdir, 'temple'),
+            'tools.mako.directories': os.path.join(SCRIPTDIR, 'temple'),
             'tools.mako.debug': configuration['debug'],
-            'tools.staticdir.root': scriptdir},
+            'tools.staticdir.root': SCRIPTDIR,
+        },
         '/static': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': 'static'},
+            'tools.staticdir.dir': 'static',
+        },
         "/favicon.ico": {
             "tools.staticfile.on": True,
-            "tools.staticfile.filename": os.path.join(scriptdir, 'static', 'favicon.ico')}})
+            "tools.staticfile.filename": os.path.join(SCRIPTDIR, 'static', 'favicon.ico'),
+        },
+    })
 
     mode = 'wsgi' if environ and start_response else 'cherrypy'
     if mode == 'wsgi':
