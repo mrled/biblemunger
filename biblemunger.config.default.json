@@ -6,7 +6,11 @@
     "favorites": [
         {"search": "hearts", "replace": "feels"},
         {"search": "stronger", "replace": "swoler"},
-        {"search": "smite", "replace": "fuck over"},
+        {"search": "smote", "replace": "yeeted"},
+        {"search": "wine", "replace": "whiteclaws"},
+        {"search": "horse", "replace": "harley"},
+        {"search": "commandments", "replace": "EULA"},
+        {"search": "messenger", "replace": "mailer daemon"},
         {"search": "thy salvation", "replace": "dat ass"},
         {"search": "staff", "replace": "dick"},
         {"search": "LORD", "replace": "KickStarter backer"},
