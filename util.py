@@ -1,6 +1,7 @@
 import base64
 import collections
 import json
+import logging
 import os
 import sqlite3
 import threading
@@ -12,7 +13,9 @@ import cherrypy
 from mako.lookup import TemplateLookup
 
 
-scriptdir = os.path.dirname(os.path.realpath(__file__))
+SCRIPTDIR = os.path.dirname(os.path.realpath(__file__))
+LOGGER = logging.getLogger('biblemunger')
+LOGGER.addHandler(logging.NullHandler())
 
 
 class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
@@ -34,23 +37,27 @@ class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
             filename: A file, relative to the static/ directory
             datatype: A data type for the URL, such as "image/png"
             """
-            filepath = os.path.join(scriptdir, 'static', filename)
+            filepath = os.path.join(SCRIPTDIR, 'static', filename)
             with open(filepath, 'rb') as f:
                 encoded = base64.b64encode(f.read()).decode()
             return "data:{};base64,{}".format(datatype, encoded)
 
         env = globals().copy()
         env.update(self.next_handler())
+        baseurl = cherrypy.url('/')
         env.update({
 
             # The base URL of the application, wherever it's mounted
-            'baseurl': cherrypy.url('/'),
+            'baseurl': baseurl,
 
             # A simple way to get a data: URL for a given static file
             'dataUriFromStaticFile': dataUriFromStaticFile,
 
             # Allow us to add useful debugging behavior at runtime
             'debug': self.debug})
+
+        LOGGER.debug("MakoHandler(): rendering template {} from base {}".format(
+            self.template, baseurl))
 
         return self.template.render(**env)
 

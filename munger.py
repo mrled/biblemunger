@@ -16,8 +16,8 @@ import util   # noqa
 
 versionfile = os.path.join(scriptdir, 'deploymentinfo.txt')
 cherrypy.tools.mako = cherrypy.Tool('on_start_resource', util.MakoLoader())
-log = logging.getLogger(__name__)
-log.addHandler(logging.NullHandler())
+LOGGER = logging.getLogger('biblemunger')
+LOGGER.addHandler(logging.NullHandler())
 
 
 class SavedSearches():
@@ -49,9 +49,9 @@ class SavedSearches():
                 (esearch, ereplace))
             present = dbconn.cursor.fetchall()
         if present:
-            log.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablename))
+            LOGGER.debug("Pair '{}'/'{}' already exists in '{}', nothing to do".format(esearch, ereplace, self.tablename))
         else:
-            log.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablename))
+            LOGGER.debug("Pair '{}'/'{}' does not exist in '{}', adding...".format(esearch, ereplace, self.tablename))
             with self.connection.rw as dbconn:
                 dbconn.cursor.execute(
                     "INSERT INTO {} VALUES (?, ?)".format(self.tablename),
@@ -138,13 +138,13 @@ class Munger():
         exreplacement = None
         results = None
         if search and replace:
-            log.debug("Search/replace: {}/{}".format(search, replace))
+            LOGGER.debug("Search/replace: {}/{}".format(search, replace))
             results = self.bible.search(search)
             pagetitle = "{}: {} ⇒ {}".format(self.apptitle, search, replace)
             if len(results) > 0:
                 shortestresult = min([v.text for v in results], key=len)
                 exreplacement = re.sub(search, replace, shortestresult)
-                log.debug("Found a verse! Example replacement: {}".format(exreplacement))
+                LOGGER.debug("Found a verse! Example replacement: {}".format(exreplacement))
         return {
             'pagetitle':      pagetitle,
             'apptitle':       self.apptitle,
@@ -205,7 +205,7 @@ def configure():
             with open(config) as f:
                 c = json.load(f)
             configuration.update(c)
-            log.debug("Found config file at {}".format(config))
+            LOGGER.debug("Found config file at {}".format(config))
         except:
             pass
     if not configuration:
@@ -246,18 +246,20 @@ def application(environ=None,
     If 'environ' and 'start_response' parameters are passed, assume WSGI; otherwise, start cherrypy's built-in webserver.
     """
 
-    log.setLevel(configuration['loglevel'])
+    cp_logger = logging.getLogger('cherrypy')
+    cp_logger.setLevel(configuration['loglevel'])
+    LOGGER.setLevel(configuration['loglevel'])
     for handler in configuration['loghandlers']:
-        log.addHandler(handler)
-    log.debug("BibleMunger logging configured")
+        LOGGER.addHandler(handler)
+    LOGGER.debug("BibleMunger logging configured")
 
     lockableconn = util.LockableSqliteConnection(configuration['dburi'])
-    log.debug("Using SQLite URI: {}".format(configuration['dburi']))
+    LOGGER.debug("Using SQLite URI: {}".format(configuration['dburi']))
 
     bib = bible.Bible(lockableconn, configuration['tablenames']['bible'])
     bib.initialize_table(initialize)
     if not bib.hasverses:
-        log.debug("Bible doesn't have its database initialized; initializing...")
+        LOGGER.debug("Bible doesn't have its database initialized; initializing...")
         bib.addversesfromxml(os.path.abspath(configuration['bible']))
 
     favorites = SavedSearches(lockableconn, configuration['tablenames']['favorites'])
@@ -284,12 +286,12 @@ def application(environ=None,
 
     mode = 'wsgi' if environ and start_response else 'cherrypy'
     if mode == 'wsgi':
-        log.debug("Returning BibleMunger as WSGI application")
+        LOGGER.debug("Returning BibleMunger as WSGI application")
         sys.stdout = sys.stderr
         cherrypy.config.update({'environment': 'embedded'})
         return cherrypy.tree(environ, start_response)
     elif mode == 'cherrypy':
-        log.debug("Starting BibleMunger's CherryPy HTTP server")
+        LOGGER.debug("Starting BibleMunger's CherryPy HTTP server")
         cherrypy.config.update({
             'server.socket_port': configuration['port'],
             'server.socket_host': configuration['server']})
