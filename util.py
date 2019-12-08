@@ -252,3 +252,7 @@ class InitializationOption(Enum):
     NoAction = 0
     InitIfNone = 1
     Reinitialize = 2
+
+    @classmethod
+    def fromstr(cls, label):
+        return cls[label]

@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 import html
@@ -247,20 +248,13 @@ def configure():
     return configuration
 
 
-def application(
-        environ=None,
-        start_response=None,
+def init(
         configuration=configure(),
         initialize=util.InitializationOption.NoAction):
     """Webserver setup code
 
-    environ: passed from WSGI (if not present, use cherrypy's built-in webserver)
-    start_response: passed from WSGI (if not present, use cherrypy's built-in webserver)
     configuration: a configuration object, normally from the configure() function
     initialize: controls db initialization. See util.InitializationOption
-
-    If 'environ' and 'start_response' parameters are passed, assume WSGI; otherwise, start
-    cherrypy's built-in webserver.
     """
 
     cp_logger = logging.getLogger('cherrypy')
@@ -287,8 +281,7 @@ def application(
     vers = MungerVersion(VERSIONFILE)
 
     server = Munger(bib, favorites, vers)
-
-    cherrypy.tree.mount(server, '/', {
+    cp_root_config = {
         '/': {
             'tools.mako.directories': os.path.join(SCRIPTDIR, 'temple'),
             'tools.mako.debug': configuration['debug'],
@@ -302,19 +295,52 @@ def application(
             "tools.staticfile.on": True,
             "tools.staticfile.filename": os.path.join(SCRIPTDIR, 'static', 'favicon.ico'),
         },
-    })
+    }
 
-    mode = 'wsgi' if environ and start_response else 'cherrypy'
-    if mode == 'wsgi':
-        LOGGER.debug("Returning BibleMunger as WSGI application")
-        sys.stdout = sys.stderr
-        cherrypy.config.update({'environment': 'embedded'})
-        return cherrypy.tree(environ, start_response)
-    elif mode == 'cherrypy':
-        LOGGER.debug("Starting BibleMunger's CherryPy HTTP server")
-        cherrypy.config.update({
-            'server.socket_port': configuration['port'],
-            'server.socket_host': configuration['server']})
-        cherrypy.engine.signals.subscribe()
-        cherrypy.engine.start()
-        cherrypy.engine.block()
+    return (server, cp_root_config)
+
+
+def start_cherrypy(server, cp_root_config, host, port):
+    """Start the CherryPy internal webserver
+    """
+    LOGGER.debug("Starting BibleMunger's CherryPy HTTP server")
+    cherrypy.config.update({
+        'server.socket_host': host,
+        'server.socket_port': port,
+    })
+    cherrypy.tree.mount(server, '/', cp_root_config)
+    cherrypy.engine.signals.subscribe()
+    cherrypy.engine.start()
+    cherrypy.engine.block()
+
+
+def parseargs():
+    """Parse commandline arguments
+    """
+    parser = argparse.ArgumentParser(description="Provocative text replacement with famous literature")
+    parser.add_argument(
+        '--initialize', '-i',
+        default=util.InitializationOption.NoAction, type=util.InitializationOption.fromstr,
+        help=" ".join([
+            'Controls whether the database is assumed in a good state,'
+            'initialized assuming empty state, or dropped then initialized']))
+    parsed = parser.parse_args()
+
+    return parsed
+
+
+parsed = parseargs()
+configuration = configure()
+server, cp_root_config = init(configuration=configuration, initialize=parsed.initialize)
+if __name__ == '__main__':
+    # If we're being run directly, use the CherryPy webserver
+    start_cherrypy(server, cp_root_config, configuration['server'], configuration['port'])
+elif __name__.startswith('_mod_wsgi_'):
+    # If we're not being run directly, configure for WSGI
+    sys.stdout = sys.stderr  # Useful for logging WSGI applications
+    cherrypy.config.update({'environment': 'embedded'})
+    configuration = configure()
+    application = cherrypy.Application(
+        server,
+        script_name=None,
+        config=cp_root_config)
