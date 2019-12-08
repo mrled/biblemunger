@@ -69,7 +69,8 @@ class SavedSearches():
 
     def get(self):
         with self.connection.ro as dbconn:
-            dbconn.cursor.execute("SELECT search, replace FROM {}".format(self.tablename))
+            dbconn.cursor.execute(
+                "SELECT search, replace FROM {} ORDER BY search".format(self.tablename))
             results = [{'search': r[0], 'replace': r[1]} for r in dbconn.cursor.fetchall()]
         return results
 
