@@ -11,6 +11,7 @@
         {"search": "horse", "replace": "harley"},
         {"search": "commandments", "replace": "EULA"},
         {"search": "messenger", "replace": "mailer daemon"},
+        {"search": "Pharisees", "replace": "Hipsters and Nerds"},
         {"search": "thy salvation", "replace": "dat ass"},
         {"search": "staff", "replace": "dick"},
         {"search": "LORD", "replace": "KickStarter backer"},
