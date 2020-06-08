@@ -14,6 +14,9 @@
     <%block name="headscript"></%block>
 
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
+
+    <script src="https://cdn.usefathom.com/script.js" site="NLIFXCIL" defer></script>
+
   </head>
   <body>
 
