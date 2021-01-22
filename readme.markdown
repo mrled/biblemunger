@@ -2,6 +2,15 @@
 
 Inspired by [Daniel Ortberg's definitive text-replacement work](http://the-toast.net/series/bible-verses/)
 
+## ARCHIVED
+
+**This project is now archived**
+
+See the replacement project, which looks much nicer:
+
+- <https://biblemunger.micahrl.com>
+- <https://github.com/mrled/biblemungerjs>
+
 ## Requirements
 
 - Python 3.4+
